@@ -7,7 +7,7 @@
 ## Equipo
 Base: **GLPI**
 Forker & Dev: **Juan Fernando Villa**
-Apoyo: **indira Carazo** - **Manuela Zuluaga Posada** - **Andrés Beltrán** - **Yamid Hernández** - **Yessy Lotero** - **Alejandro Cataño** - **Alejandro Angel**
+Apoyo: **indira Carazo** - **Andrés Beltrán** - **Yessy Lotero** - **Alejandro Cataño** - **Alejandro Angel**
 
 ## Activismo y Causas Sociales
 <p align="center">
