@@ -9,7 +9,7 @@
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of domains.
 
  domains is free software; you can redistribute it and/or modify
@@ -32,35 +32,48 @@ if (!defined('GLPI_ROOT')) {
 }
 
 // Class for a Dropdown
-class PluginDomainsDomainType extends CommonDropdown {
-   
-   static function getTypeName($nb=0) {
+/**
+ * Class PluginDomainsDomainType
+ */
+class PluginDomainsDomainType extends CommonDropdown
+{
+
+   /**
+    * @param int $nb
+    * @return translated
+    */
+   static function getTypeName($nb = 0) {
 
       return _n('Domain type', 'Domain types', $nb, 'domains');
    }
-   
-   static $rightname = 'plugin_domains';
-   
+
+   static $rightname = 'plugin_domains_dropdown';
+
+   /**
+    * @param $ID
+    * @param $entity
+    * @return ID|int|the
+    */
    static function transfer($ID, $entity) {
       global $DB;
 
-      if ($ID>0) {
+      if ($ID > 0) {
          // Not already transfer
          // Search init item
          $query = "SELECT *
                    FROM `glpi_plugin_domains_domaintypes`
                    WHERE `id` = '$ID'";
 
-         if ($result=$DB->query($query)) {
+         if ($result = $DB->query($query)) {
             if ($DB->numrows($result)) {
-               $data = $DB->fetch_assoc($result);
+               $data = $DB->fetchAssoc($result);
                $data = Toolbox::addslashes_deep($data);
                $input['name'] = $data['name'];
-               $input['entities_id']  = $entity;
+               $input['entities_id'] = $entity;
                $temp = new self();
-               $newID    = $temp->getID($input);
+               $newID = $temp->getID();
 
-               if ($newID<0) {
+               if ($newID < 0) {
                   $newID = $temp->import($input);
                }
 
@@ -71,5 +84,3 @@ class PluginDomainsDomainType extends CommonDropdown {
       return 0;
    }
 }
-
-?>

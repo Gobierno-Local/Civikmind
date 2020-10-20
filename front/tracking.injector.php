@@ -2,7 +2,7 @@
 /**
  * ---------------------------------------------------------------------
  * GLPI - Gestionnaire Libre de Parc Informatique
- * Copyright (C) 2015-2017 Teclib' and contributors.
+ * Copyright (C) 2015-2020 Teclib' and contributors.
  *
  * http://glpi-project.org
  *
@@ -29,13 +29,6 @@
  * along with GLPI. If not, see <http://www.gnu.org/licenses/>.
  * ---------------------------------------------------------------------
  */
-
-// Based on:
-// IRMA, Information Resource-Management and Administration
-// Christian Bauer
-/** @file
-* @brief
-*/
 
 include ('../inc/includes.php');
 
@@ -66,7 +59,7 @@ if (isset($_POST['add'])) {
    } else {
       $track->getEmpty();
    }
-   if ($newID = $track->add($_POST)) {
+   if ($track->add($_POST)) {
       if ($_SESSION['glpibackcreated']) {
          Html::redirect($track->getLinkURL());
       }

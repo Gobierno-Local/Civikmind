@@ -1,14 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Domains Development Team
-# This file is distributed under the same license as the PACKAGE package.
+# This file is distributed under the same license as the GLPI - Domains plugin package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: GLPI - Domains plugin 1.6.0\n"
+"Project-Id-Version: GLPI - Domains plugin 1.9.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-09-26 09:46+0200\n"
+"POT-Creation-Date: 2019-02-25 10:09+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,61 +18,57 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
-#: hook.php:369 inc/domain.class.php:822 inc/domain_item.class.php:505
+#: hook.php:436 inc/domain.class.php:995 inc/domain_item.class.php:568
 msgid "Does not expire"
 msgstr ""
 
-#: hook.php:433 inc/domain_item.class.php:423
+#: hook.php:511 inc/domain_item.class.php:486
 msgid "Associate a domain"
 msgstr ""
 
-#: setup.php:91 inc/domain.class.php:46 inc/menu.class.php:34
-#: inc/profile.class.php:144
+#: setup.php:96 inc/domain.class.php:54 inc/menu.class.php:42
+#: inc/profile.class.php:175
 msgid "Domain"
 msgid_plural "Domains"
 msgstr[0] ""
 msgstr[1] ""
 
-#: setup.php:105
-msgid "This plugin requires GLPI >= 9.1"
-msgstr ""
-
-#: inc/config.class.php:39
+#: inc/config.class.php:48
 msgid "Plugin Setup"
 msgstr ""
 
-#: inc/config.class.php:64
+#: inc/config.class.php:83
 msgid "Time of checking of validity of domains"
 msgstr ""
 
-#: inc/config.class.php:73 inc/domain.class.php:621
+#: inc/config.class.php:92 inc/domain.class.php:789
 msgid "Domains expired since more"
 msgstr ""
 
-#: inc/config.class.php:77
+#: inc/config.class.php:96
 msgid "Domains expiring in less than"
 msgstr ""
 
-#: inc/domain.class.php:272
+#: inc/domain.class.php:383
 msgid "Empty for infinite"
 msgstr ""
 
-#: inc/domain.class.php:547 inc/notificationtargetdomain.class.php:75
+#: inc/domain.class.php:709 inc/notificationtargetdomain.class.php:86
 msgid "Expired or expiring domains"
 msgstr ""
 
-#: inc/domaintype.class.php:39
+#: inc/domaintype.class.php:47
 msgid "Domain type"
 msgid_plural "Domain types"
 msgstr[0] ""
 msgstr[1] ""
 
-#: inc/notificationtargetdomain.class.php:38
-#: inc/notificationtargetdomain.class.php:49
+#: inc/notificationtargetdomain.class.php:43
+#: inc/notificationtargetdomain.class.php:57
 msgid "Expired domains"
 msgstr ""
 
-#: inc/notificationtargetdomain.class.php:39
-#: inc/notificationtargetdomain.class.php:50
+#: inc/notificationtargetdomain.class.php:44
+#: inc/notificationtargetdomain.class.php:58
 msgid "Expiring domains"
 msgstr ""

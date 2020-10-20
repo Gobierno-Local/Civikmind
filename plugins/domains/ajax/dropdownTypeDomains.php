@@ -9,7 +9,7 @@
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of domains.
 
  domains is free software; you can redistribute it and/or modify
@@ -27,9 +27,9 @@
  --------------------------------------------------------------------------
  */
 
-if (strpos($_SERVER['PHP_SELF'],"dropdownTypeDomains.php")) {
-   $AJAX_INCLUDE=1;
-   include ('../../../inc/includes.php');
+if (strpos($_SERVER['PHP_SELF'], "dropdownTypeDomains.php")) {
+   $AJAX_INCLUDE = 1;
+   include('../../../inc/includes.php');
    header("Content-Type: text/html; charset=UTF-8");
    Html::header_nocache();
 }
@@ -38,14 +38,14 @@ Session::checkCentralAccess();
 
 // Make a select box
 if (isset($_POST["domaintypes"])) {
-   $used = array();
+   $used = [];
 
    // Clean used array
    if (isset($_POST['used']) && is_array($_POST['used']) && (count($_POST['used']) > 0)) {
       $query = "SELECT `id`
                 FROM `glpi_plugin_domains_domains`
-                WHERE `id` IN (".implode(',',$_POST['used']).")
-                      AND `plugin_domains_domaintypes_id` = '".$_POST["domaintypes"]."'";
+                WHERE `id` IN (" . implode(',', $_POST['used']) . ")
+                      AND `plugin_domains_domaintypes_id` = '" . $_POST["domaintypes"] . "'";
 
       foreach ($DB->request($query) AS $data) {
          $used[$data['id']] = $data['id'];
@@ -53,11 +53,10 @@ if (isset($_POST["domaintypes"])) {
    }
 
    Dropdown::show('PluginDomainsDomain',
-                  array('name'      => $_POST['myname'],
-                        'used'      => $used,
-                        'width'     => '50%',
-                        'entity'    => $_POST['entity'],
-                        'rand'      => $_POST['rand'],
-                        'condition' => "glpi_plugin_domains_domains.plugin_domains_domaintypes_id='".$_POST["domaintypes"]."'"));
+      ['name' => $_POST['myname'],
+         'used' => $used,
+         'width' => '50%',
+         'entity' => $_POST['entity'],
+         'rand' => $_POST['rand'],
+         'condition' => ["glpi_plugin_domains_domains.plugin_domains_domaintypes_id" => $_POST["domaintypes"]]]);
 }
-?>

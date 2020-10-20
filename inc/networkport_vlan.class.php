@@ -2,7 +2,7 @@
 /**
  * ---------------------------------------------------------------------
  * GLPI - Gestionnaire Libre de Parc Informatique
- * Copyright (C) 2015-2017 Teclib' and contributors.
+ * Copyright (C) 2015-2020 Teclib' and contributors.
  *
  * http://glpi-project.org
  *
@@ -30,10 +30,6 @@
  * ---------------------------------------------------------------------
  */
 
-/** @file
-* @brief
-*/
-
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access this file directly");
 }
@@ -51,7 +47,7 @@ class NetworkPort_Vlan extends CommonDBRelation {
 
 
    /**
-    * @since version 0.84
+    * @since 0.84
    **/
    function getForbiddenStandardMassiveAction() {
 
@@ -67,8 +63,10 @@ class NetworkPort_Vlan extends CommonDBRelation {
    **/
    function unassignVlan($portID, $vlanID) {
 
-      $this->getFromDBByQuery("WHERE `networkports_id` = '$portID'
-                                     AND `vlans_id` = '$vlanID'");
+      $this->getFromDBByCrit([
+         'networkports_id' => $portID,
+         'vlans_id'        => $vlanID
+      ]);
 
       return $this->delete($this->fields);
    }
@@ -101,22 +99,30 @@ class NetworkPort_Vlan extends CommonDBRelation {
       $canedit = $port->canEdit($ID);
       $rand    = mt_rand();
 
-      $query = "SELECT `glpi_networkports_vlans`.id as assocID,
-                       `glpi_networkports_vlans`.tagged ,
-                       `glpi_vlans`.*
-                FROM `glpi_networkports_vlans`
-                LEFT JOIN `glpi_vlans`
-                        ON (`glpi_networkports_vlans`.`vlans_id` = `glpi_vlans`.`id`)
-                WHERE `networkports_id` = '$ID'";
+      $iterator = $DB->request([
+         'SELECT'    => [
+            'glpi_networkports_vlans.id as assocID',
+            'glpi_networkports_vlans.tagged',
+            'glpi_vlans.*'
+         ],
+         'FROM'      => 'glpi_networkports_vlans',
+         'LEFT JOIN' => [
+            'glpi_vlans'   => [
+               'ON' => [
+                  'glpi_networkports_vlans'  => 'vlans_id',
+                  'glpi_vlans'               => 'id'
+               ]
+            ]
+         ],
+         'WHERE'     => ['networkports_id' => $ID]
+      ]);
+      $number = count($iterator);
 
-      $result = $DB->query($query);
       $vlans  = [];
       $used   = [];
-      if ($number = $DB->numrows($result)) {
-         while ($line = $DB->fetch_assoc($result)) {
-            $used[$line["id"]]       = $line["id"];
-            $vlans[$line["assocID"]] = $line;
-         }
+      while ($line = $iterator->next()) {
+         $used[$line["id"]]       = $line["id"];
+         $vlans[$line["assocID"]] = $line;
       }
 
       if ($canedit) {
@@ -160,7 +166,7 @@ class NetworkPort_Vlan extends CommonDBRelation {
          $header_bottom .= Html::getCheckAllAsCheckbox('mass'.__CLASS__.$rand)."</th>";
       }
       $header_end .= "<th>".__('Name')."</th>";
-      $header_end .= "<th>".__('Entity')."</th>";
+      $header_end .= "<th>".Entity::getTypeName(1)."</th>";
       $header_end .= "<th>".__('Tagged')."</th>";
       $header_end .= "<th>".__('ID TAG')."</th>";
       $header_end .= "</tr>";
@@ -178,13 +184,13 @@ class NetworkPort_Vlan extends CommonDBRelation {
          if ($_SESSION["glpiis_ids_visible"] || empty($data["name"])) {
             $name = sprintf(__('%1$s (%2$s)'), $name, $data["id"]);
          }
-         echo "<td class='center b'>
+         echo "<td class='b'>
                <a href='".$CFG_GLPI["root_doc"]."/front/vlan.form.php?id=".$data["id"]."'>".$name.
               "</a>";
          echo "</td>";
-         echo "<td class='center'>".Dropdown::getDropdownName("glpi_entities", $data["entities_id"]);
-         echo "</td><td class='center'>".Dropdown::getYesNo($data["tagged"])."</td>";
-         echo "<td class='numeric'>".$data["tag"]."</td>";
+         echo "<td>".Dropdown::getDropdownName("glpi_entities", $data["entities_id"]);
+         echo "</td><td>".Dropdown::getYesNo($data["tagged"])."</td>";
+         echo "<td>".$data["tag"]."</td>";
          echo "</tr>";
       }
       if ($number) {
@@ -208,10 +214,13 @@ class NetworkPort_Vlan extends CommonDBRelation {
       global $DB;
 
       $vlans = [];
-      $query = "SELECT `vlans_id`
-                FROM `glpi_networkports_vlans`
-                WHERE `networkports_id` = '$portID'";
-      foreach ($DB->request($query) as $data) {
+      $iterator = $DB->request([
+         'SELECT' => 'vlans_id',
+         'FROM'   => 'glpi_networkports_vlans',
+         'WHERE'  => ['networkports_id' => $portID]
+      ]);
+
+      while ($data = $iterator->next()) {
          $vlans[$data['vlans_id']] = $data['vlans_id'];
       }
 
@@ -246,13 +255,11 @@ class NetworkPort_Vlan extends CommonDBRelation {
 
 
    /**
-    * @since version 0.85
+    * @since 0.85
     *
     * @see CommonDBRelation::getRelationMassiveActionsSpecificities()
    **/
    static function getRelationMassiveActionsSpecificities() {
-      global $CFG_GLPI;
-
       $specificities = parent::getRelationMassiveActionsSpecificities();
 
       // Set the labels for add_item and remove_item
@@ -263,11 +270,6 @@ class NetworkPort_Vlan extends CommonDBRelation {
    }
 
 
-   /**
-    * @since version 0.85
-    *
-    * @see CommonDBRelation::showRelationMassiveActionsSubForm()
-   **/
    static function showRelationMassiveActionsSubForm(MassiveAction $ma, $peer_number) {
 
       if ($ma->getAction() == 'add') {
@@ -276,11 +278,6 @@ class NetworkPort_Vlan extends CommonDBRelation {
    }
 
 
-   /**
-    * @since version 0.85
-    *
-    * @see CommonDBRelation::getRelationInputForProcessingOfMassiveActions()
-   **/
    static function getRelationInputForProcessingOfMassiveActions($action, CommonDBTM $item,
                                                                  array $ids, array $input) {
       if ($action == 'add') {

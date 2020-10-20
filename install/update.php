@@ -2,7 +2,7 @@
 /**
  * ---------------------------------------------------------------------
  * GLPI - Gestionnaire Libre de Parc Informatique
- * Copyright (C) 2015-2017 Teclib' and contributors.
+ * Copyright (C) 2015-2020 Teclib' and contributors.
  *
  * http://glpi-project.org
  *
@@ -30,21 +30,32 @@
  * ---------------------------------------------------------------------
  */
 
-/** @file
-* @brief
-*/
-
 if (!defined('GLPI_ROOT')) {
    define('GLPI_ROOT', realpath('..'));
 }
 
-include_once (GLPI_ROOT . "/inc/autoload.function.php");
+include_once (GLPI_ROOT . "/inc/based_config.php");
 include_once (GLPI_ROOT . "/inc/db.function.php");
 include_once (GLPI_CONFIG_DIR . "/config_db.php");
+
+global $DB, $GLPI, $GLPI_CACHE;
+
+$GLPI = new GLPI();
+$GLPI->initLogger();
+$GLPI->initErrorHandler();
+
+$GLPI_CACHE = Config::getCache('cache_db');
+$GLPI_CACHE->clear(); // Force cache cleaning to prevent usage of outdated cache data
+
+$translation_cache = Config::getCache('cache_trans');
+$translation_cache->clear(); // Force cache cleaning to prevent usage of outdated cache data
+
 Config::detectRootDoc();
 
 $DB = new DB();
 $DB->disableTableCaching(); //prevents issues on fieldExists upgrading from old versions
+
+Config::loadLegacyConfiguration();
 
 $update = new Update($DB);
 $update->initSession();
@@ -113,7 +124,7 @@ function update_importDropdown ($table, $name) {
              (`name`)
              VALUES ('".addslashes($name)."')";
    if ($result = $DB->query($query)) {
-      return $DB->insert_id();
+      return $DB->insertId();
    }
    return 0;
 }
@@ -122,15 +133,17 @@ function update_importDropdown ($table, $name) {
 /**
  * Display the form of content update (addslashes compatibility (V0.4))
  *
- * @return nothing (displays)
+ * @return void
  */
 function showContentUpdateForm() {
-
+   $_SESSION['do_content_update'] = true;
+   echo "<form action='update_content.php' method='post'>";
    echo "<div class='center'>";
    echo "<h3>".__('Update successful, your database is up to date')."</h3>";
    echo "<p>".__('You must now proceed to updating your database content')."</p></div>";
    echo "<p>";
-   echo "<a class='vsubmit' href='update_content.php'>".__('Continue?')."</a>";
+   echo "<input type='submit' class='vsubmit' value='.__('Continue?').'/>";
+   echo "</form>";
 }
 
 
@@ -169,7 +182,7 @@ function display_new_locations() {
                     $SELECT_ALL
              FROM `glpi_dropdown_locations_new` AS location0
              $FROM_ALL
-             WHERE location0.`parentID` = '0'
+             WHERE location0.`parentID` = 0
              ORDER BY NAME0 $ORDER_ALL";
    $result = $DB->query($query);
 
@@ -181,7 +194,7 @@ function display_new_locations() {
    }
    echo "</tr>";
 
-   while ($data = $DB->fetch_assoc($result)) {
+   while ($data = $DB->fetchAssoc($result)) {
       echo "<tr class=tab_bg_1>";
       for ($i=0; $i<=$MAX_LEVEL; $i++) {
 
@@ -210,7 +223,7 @@ function display_new_locations() {
       $data_old=$data;
    }
 
-   $DB->free_result($result);
+   $DB->freeResult($result);
    echo "</table>";
 }
 
@@ -223,11 +236,11 @@ function display_old_locations() {
              ORDER BY `name`";
    $result = $DB->query($query);
 
-   while ($data = $DB->fetch_assoc($result)) {
+   while ($data = $DB->fetchAssoc($result)) {
       echo "<span class='b'>".$data['name']."</span> - ";
    }
 
-   $DB->free_result($result);
+   $DB->freeResult($result);
 }
 
 
@@ -264,7 +277,7 @@ function location_create_new($split_char, $add_first) {
       $root_ID = 0;
    }
 
-   while ($data =  $DB->fetch_assoc($result)) {
+   while ($data =  $DB->fetchAssoc($result)) {
 
       if (!empty($split_char)) {
          $splitter = explode($split_char, $data['name']);
@@ -301,7 +314,7 @@ function location_create_new($split_char, $add_first) {
       $result_insert=$DB->query($query_insert);
    }
 
-   $DB->free_result($result);
+   $DB->freeResult($result);
    $query_auto_inc = "ALTER TABLE `glpi_dropdown_locations_new`
                       CHANGE `ID` `ID` INT(11) NOT NULL AUTO_INCREMENT";
    $result_auto_inc = $DB->query($query_auto_inc);
@@ -411,19 +424,25 @@ function changeVarcharToID($table1, $table2, $chps) {
              ADD `temp` INT";
    $DB->queryOrDie($query);
 
-   $query = "SELECT `$table1`.`ID` AS row1,
-                    `$table2`.`ID` AS row2
-             FROM `$table1`, `$table2`
-             WHERE `$table2`.`name` = `$table1`.`$chps`";
-   $result = $DB->queryOrDie($query);
+   $iterator = $DB->request([
+      'SELECT' => [
+         "$table1.ID AS row1",
+         "$table2.ID AS row2",
+      ],
+      'FROM'   => [$table1, $table2],
+      'WHERE'  => [
+         "$table2.name" => new \QueryExpression(DBmysql::quoteName("$table1.$chps"))
+      ]
+   ]);
 
-   while ($line = $DB->fetch_assoc($result)) {
-      $query = "UPDATE `$table1`
-                SET `temp` = ". $line["row2"] ."
-                WHERE `ID` = '". $line["row1"] ."'";
-      $DB->queryOrDie($query);
+   while ($line = $iterator->next()) {
+      $DB->updateOrDie(
+         $table1,
+         ['temp' => $line['row2']],
+         ['ID' => $line['row1']]
+      );
    }
-   $DB->free_result($result);
+   $DB->freeResult($result);
 
    $query = "ALTER TABLE `$table1`
              DROP `$chps`";
@@ -438,7 +457,7 @@ function changeVarcharToID($table1, $table2, $chps) {
 
 //update database
 function doUpdateDb() {
-   global $DB, $migration, $update;
+   global $GLPI_CACHE, $migration, $update;
 
    $currents            = $update->getCurrents();
    $current_version     = $currents['version'];
@@ -455,6 +474,7 @@ function doUpdateDb() {
    }
 
    $update->doUpdates($current_version);
+   $GLPI_CACHE->clear();
 }
 
 
@@ -490,12 +510,38 @@ function updateTreeDropdown() {
    }
 }
 
+/**
+ * Display security key check form.
+ *
+ * @return void
+ */
+function showSecurityKeyCheckForm() {
+   global $CFG_GLPI, $update;
+
+   echo '<form action="update.php" method="post">';
+   echo '<input type="hidden" name="continuer" value="1" />';
+   echo '<input type="hidden" name="missing_key_warning_shown" value="1" />';
+   echo '<div class="center">';
+   echo '<h3>' . __('Missing security key file') . '</h3>';
+   echo '<p>';
+   echo '<img src="' . $CFG_GLPI['root_doc'] . '/pics/ko_min.png" />';
+   echo sprintf(
+      __('The key file "%s" used to encrypt/decrypt sensitive data is missing. You should retrieve it from your previous installation or encrypted data will be unreadable.'),
+      $update->getExpectedSecurityKeyFilePath()
+   );
+   echo '</p>';
+   echo '<input type="submit" name="ignore" class="submit" value="' . __('Ignore warning') . '" />';
+   echo '&nbsp;&nbsp;';
+   echo '<input type="submit" name="retry" class="submit" value="' . __('Try again') . '" />';
+   echo '</form>';
+}
+
 //Debut du script
 $HEADER_LOADED = true;
 
 Session::start();
 
-Session::loadLanguage();
+Session::loadLanguage('', false);
 
 // Send UTF8 Headers
 header("Content-Type: text/html; charset=UTF-8");
@@ -508,11 +554,10 @@ echo "<meta http-equiv='Content-Script-Type' content='text/javascript'>";
 echo "<meta http-equiv='Content-Style-Type' content='text/css'>";
 echo "<title>Setup GLPI</title>";
 //JS
-echo Html::script("lib/jquery/js/jquery-1.10.2.min.js");
-echo Html::script('lib/jquery/js/jquery-ui-1.10.4.custom.js');
+echo Html::script("public/lib/base.js");
 // CSS
+echo Html::css('public/lib/base.css');
 echo Html::css('css/style_install.css');
-echo Html::css('lib/jquery/css/smoothness/jquery-ui-1.10.4.custom.css');
 echo "</head>";
 echo "<body>";
 echo "<div id='principal'>";
@@ -549,7 +594,18 @@ if (empty($_POST["continuer"]) && empty($_POST["from_update"])) {
    // Step 2
    if (test_connect()) {
       echo "<h3>".__('Database connection successful')."</h3>";
-      if (!isset($_POST["update_location"])) {
+      echo "<p class='center'>";
+      $result = Config::displayCheckDbEngine(true);
+      echo "</p>";
+      if ($result > 0) {
+         die(1);
+      }
+      if ($update->isExpectedSecurityKeyFileMissing()
+          && (!isset($_POST['missing_key_warning_shown']) || !isset($_POST['ignore']))) {
+         // Display missing security key file form if key file is missing
+         // unless it has already been displayed and user clicks on "ignore" button.
+         showSecurityKeyCheckForm();
+      } else if (!isset($_POST["update_location"])) {
          $current_version = "0.31";
          $config_table    = "glpi_config";
 
@@ -584,11 +640,19 @@ if (empty($_POST["continuer"]) && empty($_POST["from_update"])) {
                default:
                   echo "<form action='".$CFG_GLPI["root_doc"]."/install/update.php' method='post'>";
                   echo "<input type='hidden' name='update_end' value='1'/>";
+
+                  echo "<hr />";
+                  echo "<h2>".__('One last thing before starting')."</h2>";
+                  echo "<p>";
+                  echo GLPINetwork::showInstallMessage();
+                  echo "</p>";
+                  echo "<a href='".GLPI_NETWORK_SERVICES."' target='_blank' class='vsubmit'>".
+                     __('Donate')."</a><br /><br />";
+
                   if (!Telemetry::isEnabled()) {
-                     echo "<hr/>";
+                     echo "<hr />";
                      echo Telemetry::showTelemetry();
                   }
-
                   echo Telemetry::showReference();
 
                   echo "<p class='submit'><input type='submit' name='submit' class='submit' value='".

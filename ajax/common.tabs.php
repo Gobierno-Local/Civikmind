@@ -2,7 +2,7 @@
 /**
  * ---------------------------------------------------------------------
  * GLPI - Gestionnaire Libre de Parc Informatique
- * Copyright (C) 2015-2017 Teclib' and contributors.
+ * Copyright (C) 2015-2020 Teclib' and contributors.
  *
  * http://glpi-project.org
  *
@@ -29,10 +29,6 @@
  * along with GLPI. If not, see <http://www.gnu.org/licenses/>.
  * ---------------------------------------------------------------------
  */
-
-/** @file
-* @brief
-*/
 
 include ('../inc/includes.php');
 
@@ -66,7 +62,7 @@ if (!isset($_GET["withtemplate"])) {
    $_GET["withtemplate"] = "";
 }
 
-if ($item = getItemForItemtype($_GET['_itemtype'])) {
+if ($item = getItemForItemtype($_UGET['_itemtype'])) {
    if ($item->get_item_to_display_tab) {
       // No id if ruleCollection but check right
       if ($item instanceof RuleCollection) {
@@ -91,9 +87,9 @@ foreach ($notvalidoptions as $key) {
    }
 }
 if (isset($options['locked'])) {
-    ObjectLock::setReadOnlyProfile();
+   ObjectLock::setReadOnlyProfile();
 }
-CommonGLPI::displayStandardTab($item, $_GET['_glpi_tab'], $_GET["withtemplate"], $options);
+CommonGLPI::displayStandardTab($item, $_UGET['_glpi_tab'], $_GET["withtemplate"], $options);
 
 
 if (isset($_GET['full_page_tab'])) {

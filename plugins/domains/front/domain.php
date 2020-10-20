@@ -9,7 +9,7 @@
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of domains.
 
  domains is free software; you can redistribute it and/or modify
@@ -27,18 +27,19 @@
  --------------------------------------------------------------------------
  */
 
-include ('../../../inc/includes.php');
+include('../../../inc/includes.php');
 
 $plugin = new Plugin();
-if ($plugin->isActivated("environment"))
-   Html::header(PluginDomainsDomain::getTypeName(2),'',"assets","pluginenvironmentdisplay","domains");
-else
-   Html::header(PluginDomainsDomain::getTypeName(2),'',"assets","plugindomainsmenu");
+if ($plugin->isActivated("environment")) {
+   Html::header(PluginDomainsDomain::getTypeName(2), '', "assets", "pluginenvironmentdisplay", "domains");
+} else {
+   Html::header(PluginDomainsDomain::getTypeName(2), '', "assets", "plugindomainsmenu");
+}
 
 $domain = new PluginDomainsDomain();
 
-if ($domain->canView() || Session::haveRight("config",CREATE)) {
-      
+if ($domain->canView() || Session::haveRight("config", CREATE)) {
+
    Search::show("PluginDomainsDomain");
 
 } else {
@@ -46,5 +47,3 @@ if ($domain->canView() || Session::haveRight("config",CREATE)) {
 }
 
 Html::footer();
-
-?>

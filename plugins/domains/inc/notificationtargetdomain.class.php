@@ -9,7 +9,7 @@
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of domains.
 
  domains is free software; you can redistribute it and/or modify
@@ -27,58 +27,67 @@
  --------------------------------------------------------------------------
  */
 
-if (!defined('GLPI_ROOT')){
+if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
 }
 
-// Class NotificationTarget
+/**
+ * Class PluginDomainsNotificationTargetDomain
+ */
 class PluginDomainsNotificationTargetDomain extends NotificationTarget {
 
+   /**
+    * @return array
+    */
    function getEvents() {
-      return array ('ExpiredDomains' => __('Expired domains', 'domains'),
-                     'DomainsWhichExpire' => __('Expiring domains', 'domains'));
+      return ['ExpiredDomains'     => __('Expired domains', 'domains'),
+                   'DomainsWhichExpire' => __('Expiring domains', 'domains')];
    }
-   
-   function getDatasForTemplate($event,$options=array()) {
-      global $CFG_GLPI;
-         
-      $this->datas['##domain.entity##'] =
-                        Dropdown::getDropdownName('glpi_entities',
-                                                  $options['entities_id']);
-      $this->datas['##lang.domain.entity##'] = __('Entity');
-      $this->datas['##domain.action##'] = ($event=="ExpiredDomains"?__('Expired domains', 'domains'):
-                                                         __('Expiring domains', 'domains'));
-      
-      $this->datas['##lang.domain.name##'] = __('Name');
-      $this->datas['##lang.domain.dateexpiration##'] = __('Expiration date');
 
-      foreach($options['domains'] as $id => $domain) {
-         $tmp = array();
+   /**
+    * @param       $event
+    * @param array $options
+    */
+   function addDataForTemplate($event, $options = []) {
 
-         $tmp['##domain.name##'] = $domain['name'];
+      $this->data['##domain.entity##']      =
+         Dropdown::getDropdownName('glpi_entities',
+                                   $options['entities_id']);
+      $this->data['##lang.domain.entity##'] = __('Entity');
+      $this->data['##domain.action##']      = ($event == "ExpiredDomains" ? __('Expired domains', 'domains') :
+         __('Expiring domains', 'domains'));
+
+      $this->data['##lang.domain.name##']           = __('Name');
+      $this->data['##lang.domain.dateexpiration##'] = __('Expiration date');
+
+      foreach ($options['domains'] as $id => $domain) {
+         $tmp = [];
+
+         $tmp['##domain.name##']           = $domain['name'];
          $tmp['##domain.dateexpiration##'] = Html::convDate($domain['date_expiration']);
 
-         $this->datas['domains'][] = $tmp;
+         $this->data['domains'][] = $tmp;
       }
    }
-   
+
+   /**
+    *
+    */
    function getTags() {
 
-      $tags = array('domain.name'            => __('Name'),
-                     'domain.dateexpiration'    => __('Expiration date'));
+      $tags = ['domain.name'           => __('Name'),
+                    'domain.dateexpiration' => __('Expiration date')];
       foreach ($tags as $tag => $label) {
-         $this->addTagToList(array('tag'=>$tag,'label'=>$label,
-                                   'value'=>true));
+         $this->addTagToList(['tag'   => $tag, 'label' => $label,
+                                   'value' => true]);
       }
-      
-      $this->addTagToList(array('tag'=>'domains',
-                                'label'=>__('Expired or expiring domains', 'domains'),
-                                'value'=>false,
-                                'foreach'=>true,
-                                'events'=>array('DomainsWhichExpire','ExpiredDomains')));
+
+      $this->addTagToList(['tag'     => 'domains',
+                                'label'   => __('Expired or expiring domains', 'domains'),
+                                'value'   => false,
+                                'foreach' => true,
+                                'events'  => ['DomainsWhichExpire', 'ExpiredDomains']]);
 
       asort($this->tag_descriptions);
    }
 }
-
-?>

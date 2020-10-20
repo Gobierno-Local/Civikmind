@@ -5,11 +5,11 @@
  Manufacturersimports plugin for GLPI
  Copyright (C) 2003-2011 by the Manufacturersimports Development Team.
 
- https://forge.indepnet.net/projects/manufacturersimports
+ https://github.com/InfotelGLPI/manufacturersimports
  -------------------------------------------------------------------------
 
  LICENSE
-                
+
  This file is part of Manufacturersimports.
 
  Manufacturersimports is free software; you can redistribute it and/or modify
@@ -33,77 +33,190 @@ if (!defined('GLPI_ROOT')) {
 
 ini_set("max_execution_time", "0");
 
+/**
+ * Class PluginManufacturersimportsDell
+ */
 class PluginManufacturersimportsDell extends PluginManufacturersimportsManufacturer {
 
+   /**
+    * @see PluginManufacturersimportsManufacturer::showCheckbox()
+    */
    function showCheckbox($ID, $sel, $otherSerial = false) {
       return "<input type='checkbox' name='item[".$ID."]' value='1' $sel>";
    }
 
+   /**
+    * @see PluginManufacturersimportsManufacturer::showItem()
+    */
    function showItem($output_type, $otherSerial = false, $item_num, $row_num) {
       return false;
    }
 
+   /**
+    * @see PluginManufacturersimportsManufacturer::showItemTitle()
+    */
    function showItemTitle($output_type, $header_num) {
       return false;
    }
 
+   /**
+    * @see PluginManufacturersimportsManufacturer::showDocTitle()
+    */
    function showDocTitle($output_type, $header_num) {
       return false;
    }
 
+   /**
+    * @see PluginManufacturersimportsManufacturer::showDocItem()
+    */
    function showDocItem($output_type, $item_num, $row_num, $doc = null) {
       return Search::showEndLine($output_type);
    }
 
-   function getSupplierInfo($compSerial = null, $otherserial = null, $key=null) {
-      $info["name"]         = PluginManufacturersimportsConfig::DELL;
-      // v4
-      $info['supplier_url'] = "https://api.dell.com/support/assetinfo/v4/getassetwarranty/" ;
-      // v4
-      $info["url"] = $info["supplier_url"] . "$compSerial?apikey=" . $key;
+   /**
+    * @see PluginManufacturersimportsManufacturer::getSupplierInfo()
+    */
+   function getSupplierInfo($compSerial = null, $otherSerial = null, $key = null, $apisecret = null,
+                            $supplierUrl = null) {
+
+      if (!$compSerial) {
+         // by default
+         $info["name"]            = PluginManufacturersimportsConfig::DELL;
+         $info['supplier_url']    = "https://www.dell.com/support/home/product-support/servicetag/";
+         $info['token_url']       = "https://apigtwb2c.us.dell.com/auth/oauth/v2/token";
+         $info['warranty_url']    = "https://apigtwb2c.us.dell.com/PROD/sbil/eapi/v5/asset-entitlements?servicetags=";
+         $info["supplier_key"]    = "123456789";
+         $info["supplier_secret"] = "987654321";
+         return $info;
+      }
+
+      $info["url"] = $supplierUrl. "$compSerial";
       return $info;
    }
-   
+
+   /**
+    * @return bool
+    */
    function getSearchField() {
       return false;
    }
-   
+
+   /**
+    * @see PluginManufacturersimportsManufacturer::getBuyDate()
+    */
    function getBuyDate($contents) {
-      $info = json_decode($contents, TRUE);
-      // v4
-      if( isset( $info['AssetWarrantyResponse'][0]['AssetHeaderData']['ShipDate'] ) ) {
-          return $info['AssetWarrantyResponse'][0]['AssetHeaderData']['ShipDate'] ;
+      $info = json_decode($contents, true);
+      // v5
+      if (isset($info[0]['shipDate'])) {
+         return $info[0]['shipDate'];
       }
-      
+
       return false;
    }
 
+   /**
+    * @see PluginManufacturersimportsManufacturer::getStartDate()
+    */
+   function getStartDate($contents) {
+      $info = json_decode($contents, true);
+      // v5
+      if (isset($info[0]['entitlements'][0]['startDate'])) {
+         return $info[0]['entitlements'][0]['startDate'];
+      }
+
+      return false;
+   }
+
+   /**
+    * @see PluginManufacturersimportsManufacturer::getExpirationDate()
+    */
    function getExpirationDate($contents) {
-      $info = json_decode($contents, TRUE);
-      // v4
-      if( isset( $info['AssetWarrantyResponse'][0]['AssetEntitlementData'] ) ) {
-          if(isset($info['AssetWarrantyResponse'][0]['AssetEntitlementData'][0])) {
-             return $info['AssetWarrantyResponse'][0]['AssetEntitlementData'][0]["EndDate"];
-          } else {
-             return $info['AssetWarrantyResponse'][0]['AssetEntitlementData']["EndDate"];
-          }
-       }
-      
-      return false;
-   }
-   
-   function getWarrantyInfo($contents) {
-      $info = json_decode($contents, TRUE);
-      if( isset( $info['AssetWarrantyResponse'][0]['AssetEntitlementData'] ) ) {
-         if(isset($info['AssetWarrantyResponse'][0]['AssetEntitlementData'][0])) {
-            return $info['AssetWarrantyResponse'][0]['AssetEntitlementData'][0]["ServiceLevelDescription"];
-         } else {
-            return $info['AssetWarrantyResponse'][0]['AssetEntitlementData']["ServiceLevelDescription"];
-         }
+      $info = json_decode($contents, true);
+      // v5
+      // when several dates are available, will take the last one
+      if (isset($info[0]['entitlements'][0]['endDate'])) {
+         return array_pop($info[0]['entitlements'])['endDate'];
       }
 
       return false;
-   }   
-}
+   }
 
-?>
+   /**
+    * @see PluginManufacturersimportsManufacturer::getWarrantyInfo()
+    */
+   function getWarrantyInfo($contents) {
+      $info = json_decode($contents, true);
+      // v5
+      // when several warranties are available, will take the last one
+      if (isset($info[0]['entitlements'][0]['serviceLevelDescription'])) {
+         return array_pop($info[0]['entitlements'])['serviceLevelDescription'];
+      }
+
+      return false;
+   }
+
+   /**
+    * @param $name
+    *
+    * @return array
+    */
+   static function cronInfo($name) {
+
+      switch ($name) {
+         case "DataRecoveryDELL" :
+            return ['description' => PluginManufacturersimportsModel::getTypeName(1) . " - " . __('Data recovery DELL for computer', 'manufacturersimports')];
+      }
+      return [];
+   }
+
+
+   /**
+    * Run for data recovery DELL
+    *
+    * @param $task : object of crontask
+    *
+    * @return integer : 0 (nothing to do)
+    *                   >0 (endded)
+    **/
+   static function cronDataRecoveryDELL($task) {
+
+      $cron_status = PluginManufacturersimportsImport::importCron($task, PluginManufacturersimportsConfig::DELL);
+
+      return $cron_status;
+   }
+
+   /**
+    * Summary of getToken
+    * @param  $config
+    * @return mixed
+    */
+   static function getToken($config){
+      $token = false;
+      // must manage token
+      $options = ["url"          => $config->fields["token_url"],
+                  "download"     => false,
+                  "file"         => false,
+                  "post"         => ['client_id' => $config->fields["supplier_key"],
+                                     'client_secret' => $config->fields["supplier_secret"],
+                                     'grant_type' => 'client_credentials'],
+                  "suppliername" => $config->fields["name"]];
+      $contents    = PluginManufacturersimportsPostImport::cURLData($options);
+      // must extract from $contents the token bearer
+      $response = json_decode($contents, true);
+      if (isset($response['access_token'])) {
+         $token = $response['access_token'];
+      }
+      return $token;
+   }
+
+
+   /**
+    * Summary of getWarrantyUrl
+    * @param  $config 
+    * @param  $compSerial 
+    * @return string[]
+    */
+   static function getWarrantyUrl($config, $compSerial) {
+      return ["url" => $config->fields['warranty_url']. "$compSerial"];
+   }
+}

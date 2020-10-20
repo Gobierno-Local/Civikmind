@@ -5,11 +5,11 @@
  Manufacturersimports plugin for GLPI
  Copyright (C) 2003-2016 by the Manufacturersimports Development Team.
 
- https://github.com/InfotelGLPI
+ https://github.com/InfotelGLPI/manufacturersimports
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of Manufacturersimports.
 
  Manufacturersimports is free software; you can redistribute it and/or modify
@@ -33,14 +33,13 @@ Session::checkRight("config", UPDATE);
 
 $plugin = new Plugin();
 if ($plugin->isActivated("manufacturersimports")) {
-   Html::header(__('Setup'), '',"tools", "pluginmanufacturersimportsmenu", "config");
+   Html::header(__('Setup'), '', "tools", "pluginmanufacturersimportsmenu", "config");
    Search::show("PluginManufacturersimportsConfig");
 } else {
    Html::header(__('Setup'), '', "config", "plugins");
    echo "<div align='center'><br><br>";
-   echo "<img src=\"".$CFG_GLPI["root_doc"]."/pics/warning.png\" alt=\"warning\"><br><br>";
+   echo "<i class='fas fa-exclamation-triangle fa-4x' style='color:orange'></i><br><br>";
    echo "<b>".__('Please activate the plugin', 'manufacturersimports')."</b></div>";
 }
 
 Html::footer();
-?>

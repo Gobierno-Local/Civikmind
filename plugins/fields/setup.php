@@ -26,10 +26,18 @@
  --------------------------------------------------------------------------
  */
 
-define ('PLUGIN_FIELDS_VERSION', '1.7.0');
+define ('PLUGIN_FIELDS_VERSION', '1.11.0');
+
+// Minimal GLPI version, inclusive
+define("PLUGIN_FIELDS_MIN_GLPI", "9.5");
+// Maximum GLPI version, exclusive
+define("PLUGIN_FIELDS_MAX_GLPI", "9.6");
 
 if (!defined("PLUGINFIELDS_DIR")) {
-   define("PLUGINFIELDS_DIR", GLPI_ROOT . "/plugins/fields");
+   define("PLUGINFIELDS_DIR", Plugin::getPhpDir("fields"));
+}
+if (!defined("PLUGINFIELDS_WEB_DIR")) {
+   define("PLUGINFIELDS_WEB_DIR", Plugin::getWebDir("fields"));
 }
 
 if (!defined("PLUGINFIELDS_DOC_DIR")) {
@@ -65,7 +73,6 @@ function plugin_init_fields() {
    $PLUGIN_HOOKS['csrf_compliant']['fields'] = true;
 
    // manage autoload of plugin custom classes
-   include_once(PLUGINFIELDS_DIR . "/vendor/autoload.php");
    include_once(PLUGINFIELDS_DIR . "/inc/autoload.php");
    $pluginfields_autoloader = new PluginFieldsAutoloader([PLUGINFIELDS_CLASS_PATH]);
    $pluginfields_autoloader->register();
@@ -73,11 +80,11 @@ function plugin_init_fields() {
    $plugin = new Plugin();
    if ($plugin->isInstalled('fields')
        && $plugin->isActivated('fields')
-       && Session::getLoginUserID() ) {
+       && Session::getLoginUserID()) {
 
       // Init hook about itemtype(s) for plugin fields
       if (!isset($PLUGIN_HOOKS['plugin_fields'])) {
-         $PLUGIN_HOOKS['plugin_fields'] = array();
+         $PLUGIN_HOOKS['plugin_fields'] = [];
       }
 
       // When a Category is changed during ticket creation
@@ -170,33 +177,18 @@ function plugin_version_fields() {
       'name'           => __("Additionnal fields", "fields"),
       'version'        => PLUGIN_FIELDS_VERSION,
       'author'         => 'Teclib\', Olivier Moron',
-      'homepage'       => 'teclib.com',
+      'homepage'       => 'https://github.com/pluginsGLPI/fields',
       'license'        => 'GPLv2+',
       'requirements'   => [
          'glpi' => [
-            'min' => '9.2',
-            'max' => '9.3',
-            'dev' => true
+            'min' => PLUGIN_FIELDS_MIN_GLPI,
+            'max' => PLUGIN_FIELDS_MAX_GLPI,
+            'dev' => true, //Required to allow 9.2-dev
          ]
       ]
    ];
 }
 
-/**
- * Check pre-requisites before install
- * OPTIONNAL, but recommanded
- *
- * @return boolean
- */
-function plugin_fields_check_prerequisites() {
-   $version = rtrim(GLPI_VERSION, '-dev');
-   if (version_compare($version, '9.2', 'lt')) {
-      echo "This plugin requires GLPI 9.2";
-      return false;
-   }
-
-   return true;
-}
 
 /**
  * Check all stored containers files (classes & front) are present, or create they if needed
@@ -224,7 +216,7 @@ function plugin_fields_checkFiles($force = false) {
 
          foreach ($containers as $container) {
             $itemtypes = (strlen($container['itemtypes']) > 0)
-               ? json_decode($container['itemtypes'], TRUE)
+               ? json_decode($container['itemtypes'], true)
                : [];
             foreach ($itemtypes as $itemtype) {
                $classname = PluginFieldsContainer::getClassname($itemtype, $container['name']);
@@ -240,21 +232,10 @@ function plugin_fields_checkFiles($force = false) {
 
       if ($DB->tableExists(PluginFieldsField::getTable())) {
          $fields_obj = new PluginFieldsField();
-         $fields     = $fields_obj->find("`type` = 'dropdown'");
+         $fields     = $fields_obj->find(['type' => 'dropdown']);
          foreach ($fields as $field) {
             PluginFieldsDropdown::create($field);
          }
       }
    }
-}
-
-/**
- * Check configuration process
- *
- * @param boolean $verbose Whether to display message on failure. Defaults to false
- *
- * @return boolean
- */
-function plugin_fields_check_config($verbose = false) {
-   return true;
 }

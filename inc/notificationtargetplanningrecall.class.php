@@ -2,7 +2,7 @@
 /**
  * ---------------------------------------------------------------------
  * GLPI - Gestionnaire Libre de Parc Informatique
- * Copyright (C) 2015-2017 Teclib' and contributors.
+ * Copyright (C) 2015-2020 Teclib' and contributors.
  *
  * http://glpi-project.org
  *
@@ -30,10 +30,6 @@
  * ---------------------------------------------------------------------
  */
 
-/** @file
-* @brief
-*/
-
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access this file directly");
 }
@@ -42,7 +38,7 @@ if (!defined('GLPI_ROOT')) {
 /**
  * NotificationTargetPlanningRecall Class
  *
- * @since version 0.84
+ * @since 0.84
 **/
 class NotificationTargetPlanningRecall extends NotificationTarget {
 
@@ -56,7 +52,7 @@ class NotificationTargetPlanningRecall extends NotificationTarget {
     * @see NotificationTarget::addNotificationTargets()
    **/
    function addNotificationTargets($entity) {
-      $this->addTarget(Notification::AUTHOR, __('Requester'));
+      $this->addTarget(Notification::AUTHOR, _n('Requester', 'Requesters', 1));
       $this->addTarget(Notification::TASK_ASSIGN_TECH, __('Technician in charge of the task'));
    }
 

@@ -5,11 +5,11 @@
  Manufacturersimports plugin for GLPI
  Copyright (C) 2003-2011 by the Manufacturersimports Development Team.
 
- https://forge.indepnet.net/projects/manufacturersimports
+ https://github.com/InfotelGLPI/manufacturersimports
  -------------------------------------------------------------------------
 
  LICENSE
-		
+
  This file is part of Manufacturersimports.
 
  Manufacturersimports is free software; you can redistribute it and/or modify
@@ -30,76 +30,108 @@
 function plugin_manufacturersimports_install() {
    global $DB;
 
-   include_once (GLPI_ROOT."/plugins/manufacturersimports/inc/profile.class.php");
-   include_once (GLPI_ROOT."/plugins/manufacturersimports/inc/config.class.php");
-   $migration = new Migration("1.7.0");
+   include_once(GLPI_ROOT . "/plugins/manufacturersimports/inc/profile.class.php");
+   include_once(GLPI_ROOT . "/plugins/manufacturersimports/inc/config.class.php");
+
+   $migration = new Migration("2.3.0");
    $update    = false;
-   
+
    //Root of SQL files for DB installation or upgrade
-   $sql_root  = GLPI_ROOT ."/plugins/manufacturersimports/sql/";
-   
-   if (!TableExists("glpi_plugin_manufacturersimports_configs")) {
+   $sql_root = GLPI_ROOT . "/plugins/manufacturersimports/sql/";
 
-      $DB->runFile($sql_root."/empty-1.7.0.sql");
+   if (!$DB->tableExists("glpi_plugin_manufacturersimports_configs")) {
 
-   } else if (TableExists("glpi_plugin_suppliertag_config") 
-      && !FieldExists("glpi_plugin_suppliertag_config", "FK_entities")) {
+      $DB->runFile($sql_root . "/empty-2.3.0.sql");
 
-      $update = true;
-      $DB->runFile($sql_root."/update-1.1.sql");
-      $DB->runFile($sql_root."/update-1.2.0.sql");
-      $DB->runFile($sql_root."/update-1.3.0.sql");
-      $DB->runFile($sql_root."/update-1.4.1.sql");
-      $DB->runFile($sql_root."/update-1.5.0.sql");
-      $DB->runFile($sql_root."/update-1.7.0.sql");
-
-   } else if (TableExists("glpi_plugin_suppliertag_profiles") 
-      && FieldExists("glpi_plugin_suppliertag_profiles", "interface")) {
+   } else if ($DB->tableExists("glpi_plugin_suppliertag_config")
+              && !$DB->fieldExists("glpi_plugin_suppliertag_config", "FK_entities")) {
 
       $update = true;
-      $DB->runFile($sql_root."/update-1.2.0.sql");
-      $DB->runFile($sql_root."/update-1.3.0.sql");
-      $DB->runFile($sql_root."/update-1.4.1.sql");
-      $DB->runFile($sql_root."/update-1.5.0.sql");
-      $DB->runFile($sql_root."/update-1.7.0.sql");
+      $DB->runFile($sql_root . "/update-1.1.sql");
+      $DB->runFile($sql_root . "/update-1.2.0.sql");
+      $DB->runFile($sql_root . "/update-1.3.0.sql");
+      $DB->runFile($sql_root . "/update-1.4.1.sql");
+      $DB->runFile($sql_root . "/update-1.5.0.sql");
+      $DB->runFile($sql_root . "/update-1.7.0.sql");
 
-   } else if (!TableExists("glpi_plugin_manufacturersimports_profiles")
-                && !FieldExists("glpi_plugin_manufacturersimports_configs", "supplier_key")) {
+   } else if ($DB->tableExists("glpi_plugin_suppliertag_profiles")
+              && $DB->fieldExists("glpi_plugin_suppliertag_profiles", "interface")) {
 
       $update = true;
-      $DB->runFile($sql_root."/update-1.3.0.sql");
-      $DB->runFile($sql_root."/update-1.4.1.sql");
-      $DB->runFile($sql_root."/update-1.5.0.sql");
-      $DB->runFile($sql_root."/update-1.7.0.sql");
-      
-   } else if (!FieldExists("glpi_plugin_manufacturersimports_configs", "supplier_key")) {
-      $DB->runFile($sql_root."/update-1.7.0.sql");
+      $DB->runFile($sql_root . "/update-1.2.0.sql");
+      $DB->runFile($sql_root . "/update-1.3.0.sql");
+      $DB->runFile($sql_root . "/update-1.4.1.sql");
+      $DB->runFile($sql_root . "/update-1.5.0.sql");
+      $DB->runFile($sql_root . "/update-1.7.0.sql");
+
+   } else if (!$DB->tableExists("glpi_plugin_manufacturersimports_profiles")
+              && !$DB->fieldExists("glpi_plugin_manufacturersimports_configs", "supplier_key")) {
+
+      $update = true;
+      $DB->runFile($sql_root . "/update-1.3.0.sql");
+      $DB->runFile($sql_root . "/update-1.4.1.sql");
+      $DB->runFile($sql_root . "/update-1.5.0.sql");
+      $DB->runFile($sql_root . "/update-1.7.0.sql");
+
+   } else if (!$DB->fieldExists("glpi_plugin_manufacturersimports_configs", "supplier_key")) {
+      $DB->runFile($sql_root . "/update-1.7.0.sql");
+   } else if (!$DB->fieldExists("glpi_plugin_manufacturersimports_configs", "supplier_secret")) {
+      $DB->runFile($sql_root . "/update-2.1.0.sql");
+   }
+   if (!$DB->fieldExists("glpi_plugin_manufacturersimports_configs", "warranty_url")) {
+      $DB->runFile($sql_root . "/update-2.1.3.sql");
    }
 
    $query = "UPDATE `glpi_plugin_manufacturersimports_configs` 
-             SET `Supplier_url` = 'http://www.dell.com/support/troubleshooting/us/en/04/Index?c=us&l=en&s=bsd&cs=04&t=system&ServiceTag=' 
-             WHERE `name` ='".PluginManufacturersimportsConfig::DELL."'";
+             SET `Supplier_url` = 'https://www.dell.com/support/home/product-support/servicetag/',
+                 `warranty_url` ='https://apigtwb2c.us.dell.com/PROD/sbil/eapi/v5/asset-entitlements?servicetags=', 
+                 `token_url`    = 'https://apigtwb2c.us.dell.com/auth/oauth/v2/token'
+             WHERE `name` ='" . PluginManufacturersimportsConfig::DELL . "'";
    $DB->query($query);
+
+   $query = "UPDATE `glpi_plugin_manufacturersimports_configs` 
+             SET `Supplier_url` = 'https://www.lenovo.com/us/en/warrantyApos?serialNumber=' 
+             WHERE `name` ='" . PluginManufacturersimportsConfig::LENOVO . "'";
+   $DB->query($query);
+
+   $query = "UPDATE `glpi_plugin_manufacturersimports_configs`
+             SET `Supplier_url` = 'http://support.ts.fujitsu.com/Warranty/WarrantyStatus.asp?lng=com&IDNR'
+             WHERE `name` ='" . PluginManufacturersimportsConfig::FUJITSU . "'";
+   $DB->query($query);
+
+   $query = "UPDATE `glpi_plugin_manufacturersimports_configs` 
+             SET `Supplier_url` = 'https://www.wortmann.de/fr-fr/profile/snsearch.aspx?SN=' 
+             WHERE `name` ='" . PluginManufacturersimportsConfig::WORTMANN_AG . "'";
+   $DB->query($query);
+
+   $query = "UPDATE `glpi_plugin_manufacturersimports_configs` 
+             SET `Supplier_url` = 'https://css.api.hp.com/oauth/v1/token'
+             WHERE `name` ='" . PluginManufacturersimportsConfig::HP . "'";
+   $DB->query($query);
+
+   /* Version 1.9.1 */
+   $cron = new CronTask();
+   if (!$cron->getFromDBbyName('PluginManufacturersimportsDell', 'DataRecoveryDELL')) {
+      CronTask::Register('PluginManufacturersimportsDell', 'DataRecoveryDELL', WEEK_TIMESTAMP, ['state' => CronTask::STATE_DISABLE]);
+   }
 
    if ($update) {
       foreach ($DB->request('glpi_plugin_manufacturersimports_profiles') as $data) {
          $query = "UPDATE `glpi_plugin_manufacturersimports_profiles`
-                   SET `profiles_id` = '".$data["id"]."'
-                   WHERE `id` = '".$data["id"]."';";
+                   SET `profiles_id` = '" . $data["id"] . "'
+                   WHERE `id` = '" . $data["id"] . "';";
          $DB->query($query);
       }
-      
+
       $migration->dropField('glpi_plugin_manufacturersimports_profiles', 'name');
 
-       Plugin::migrateItemType(
-          array(2150 => 'PluginManufacturersimportsModel',
-                2151 => 'PluginManufacturersimportsConfig'),
-          array("glpi_bookmarks", "glpi_bookmarks_users", "glpi_displaypreferences",
-                "glpi_documents_items", "glpi_infocoms", "glpi_logs", "glpi_tickets"),
-         array("glpi_plugin_manufacturersimports_models","glpi_plugin_manufacturersimports_logs"));
+      Plugin::migrateItemType(
+         [2150 => 'PluginManufacturersimportsModel',
+               2151 => 'PluginManufacturersimportsConfig'],
+         ["glpi_savedsearches", "glpi_savedsearches_users", "glpi_displaypreferences",
+               "glpi_documents_items", "glpi_infocoms", "glpi_logs", "glpi_items_tickets"],
+         ["glpi_plugin_manufacturersimports_models", "glpi_plugin_manufacturersimports_logs"]);
    }
-
-   
 
    //Migrate profiles to the system introduced in 0.85
    PluginManufacturersimportsProfile::initProfile();
@@ -111,37 +143,41 @@ function plugin_manufacturersimports_install() {
 }
 
 function plugin_manufacturersimports_uninstall() {
-   global $DB;
 
-   include_once (GLPI_ROOT."/plugins/manufacturersimports/inc/profile.class.php");
-   include_once (GLPI_ROOT."/plugins/manufacturersimports/inc/menu.class.php");
+   include_once(GLPI_ROOT . "/plugins/manufacturersimports/inc/profile.class.php");
+   include_once(GLPI_ROOT . "/plugins/manufacturersimports/inc/menu.class.php");
 
-   $migration = new Migration("1.7.0");
-   $tables    = array("glpi_plugin_manufacturersimports_configs",
+   $migration = new Migration("1.9.1");
+   $tables    = ["glpi_plugin_manufacturersimports_configs",
                       "glpi_plugin_manufacturersimports_models",
-                      "glpi_plugin_manufacturersimports_logs");
-   foreach($tables as $table) {
+                      "glpi_plugin_manufacturersimports_logs"];
+   foreach ($tables as $table) {
       $migration->dropTable($table);
    }
 
    //old versions
-   $tables = array("glpi_plugin_suppliertag_config",
+   $tables = ["glpi_plugin_suppliertag_config",
                    "glpi_plugin_suppliertag_profiles",
                    "glpi_plugin_suppliertag_models",
-                   "glpi_plugin_suppliertag_imported");
-   foreach($tables as $table) {
+                   "glpi_plugin_suppliertag_imported"];
+   foreach ($tables as $table) {
       $migration->dropTable($table);
    }
-   
+
+   $cron = new CronTask;
+   if ($cron->getFromDBbyName('PluginManufacturersimportsDell', 'DataRecoveryDELL')) {
+      CronTask::Unregister('DataRecoveryDELL');
+   }
+
    $profileRight = new ProfileRight();
 
    foreach (PluginManufacturersimportsProfile::getAllRights() as $right) {
-      $profileRight->deleteByCriteria(array('name' => $right['field']));
+      $profileRight->deleteByCriteria(['name' => $right['field']]);
    }
-   
+
    //Remove rigth from $_SESSION['glpiactiveprofile'] if exists
    PluginManufacturersimportsProfile::removeRightsFromSession();
-   
+
    //Remove entries in GLPI's menu and breadcrumb
    PluginManufacturersimportsMenu::removeRightsFromSession();
    return true;
@@ -157,24 +193,24 @@ function plugin_manufacturersimports_postinit() {
 function plugin_manufacturersimports_getDatabaseRelations() {
    $plugin = new Plugin();
    if ($plugin->isActivated("manufacturersimports")) {
-      return array ("glpi_entities" 
-                        => array ("glpi_plugin_manufacturersimports_configs" 
-                                 => "entities_id"),
-                    "glpi_manufacturers" 
-                        => array ("glpi_plugin_manufacturersimports_configs" 
-                                 => "manufacturers_id"),
-                     "glpi_suppliers" 
-                        => array ("glpi_plugin_manufacturersimports_configs" 
-                                 => "suppliers_id"),
-                     "glpi_documentcategories" 
-                        => array ("glpi_plugin_manufacturersimports_configs" 
-                                 => "documentcategories_id"),
-                     "glpi_documents" 
-                        => array ("glpi_plugin_manufacturersimports_logs" 
-                                 => "documents_id")
-                );
+      return ["glpi_entities"
+                   => ["glpi_plugin_manufacturersimports_configs"
+                            => "entities_id"],
+                   "glpi_manufacturers"
+                   => ["glpi_plugin_manufacturersimports_configs"
+                            => "manufacturers_id"],
+                   "glpi_suppliers"
+                   => ["glpi_plugin_manufacturersimports_configs"
+                            => "suppliers_id"],
+                   "glpi_documentcategories"
+                   => ["glpi_plugin_manufacturersimports_configs"
+                            => "documentcategories_id"],
+                   "glpi_documents"
+                   => ["glpi_plugin_manufacturersimports_logs"
+                            => "documents_id"]
+      ];
    } else {
-      return array ();
+      return [];
    }
 }
 
@@ -182,22 +218,22 @@ function plugin_manufacturersimports_getDatabaseRelations() {
 
 function plugin_manufacturersimports_getAddSearchOptions($itemtype) {
 
-    $sopt=array();
+   $sopt = [];
 
-    if (in_array($itemtype, PluginManufacturersimportsConfig::getTypes())) {
+   if (in_array($itemtype, PluginManufacturersimportsConfig::getTypes())) {
       //TODO change right manufacturersimports READ
       if (Session::haveRight('config', READ)) {
-        $sopt[2150]['table']         = 'glpi_plugin_manufacturersimports_models';
-        $sopt[2150]['field']         = 'model_name';
-        $sopt[2150]['linkfield']     = '';
-        $sopt[2150]['name']          = _n('Suppliers import', 
-                                          'Suppliers imports', 
-                                          2 , 
-                                          'manufacturersimports')
-                                          ." - ".__('Model number', 'manufacturersimports');
-        $sopt[2150]['forcegroupby']  = true;
-        $sopt[2150]['joinparams']    = array('jointype'  => 'itemtype_item');
-        $sopt[2150]['massiveaction'] = false;
+         $sopt[2150]['table']         = 'glpi_plugin_manufacturersimports_models';
+         $sopt[2150]['field']         = 'model_name';
+         $sopt[2150]['linkfield']     = '';
+         $sopt[2150]['name']          = _n('Suppliers import',
+                                           'Suppliers imports',
+                                           2,
+                                           'manufacturersimports')
+                                        . " - " . __('Model number', 'manufacturersimports');
+         $sopt[2150]['forcegroupby']  = true;
+         $sopt[2150]['joinparams']    = ['jointype' => 'itemtype_item'];
+         $sopt[2150]['massiveaction'] = false;
       }
    }
    return $sopt;
@@ -218,11 +254,12 @@ function plugin_manufacturersimports_forceGroupBy($type) {
 
 ////// SPECIFIC MODIF MASSIVE FUNCTIONS ///////
 function plugin_manufacturersimports_MassiveActions($type) {
-   if (in_array($type, PluginManufacturersimportsConfig::getTypes(true))) {
-      return array('PluginManufacturersimportsModel'.MassiveAction::CLASS_ACTION_SEPARATOR."add_model"
-                  =>__('Add new material brand number', 'manufacturersimports'));
+   $plugin = new Plugin();
+   if ($plugin->isActivated('manufacturersimports')) {
+      if (in_array($type, PluginManufacturersimportsConfig::getTypes(true))) {
+         return ['PluginManufacturersimportsModel' . MassiveAction::CLASS_ACTION_SEPARATOR . "add_model"
+                 => __('Add new material brand number', 'manufacturersimports')];
+      }
    }
-   return array();
+   return [];
 }
-
-?>

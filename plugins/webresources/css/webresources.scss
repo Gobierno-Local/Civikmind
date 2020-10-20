@@ -1,0 +1,80 @@
+/*
+ -------------------------------------------------------------------------
+ Web Resources Plugin for GLPI
+ Copyright (C) 2019-2020 by Curtis Conard
+ https://github.com/cconard96/glpi-webresources-plugin
+ -------------------------------------------------------------------------
+ LICENSE
+ This file is part of Web Resources Plugin for GLPI.
+ Web Resources Plugin for GLPI is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+ Web Resources Plugin for GLPI is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ You should have received a copy of the GNU General Public License
+ along with Web Resources Plugin for GLPI. If not, see <http://www.gnu.org/licenses/>.
+ --------------------------------------------------------------------------
+ */
+
+.webresources-header {
+   font-size: 1.4em;
+   margin-bottom: 15px;
+}
+
+.webresources-categories {
+   .webresources-category {
+      border-top: 1px solid black;
+      margin-bottom: 15px;
+
+      .webresources-category-header {
+         font-size: 1.2em;
+         border-top: 4px solid black;
+         width: fit-content;
+         padding-right: 10px;
+      }
+
+      .webresources-item {
+         display: inline-block;
+         margin-left: 10px;
+         margin-right: 5px;
+         width: 5em;
+         vertical-align: top;
+
+         a, a:hover {
+            color: var(--main-text-color);
+            text-decoration: none;
+         }
+
+         &:hover {
+            background-color: #F0F0F0;
+         }
+
+         .webresources-item-icon {
+            text-align: center;
+            font-size: 1.2em;
+
+            img {
+               width: 64px;
+               height: 64px;
+               margin-top: 5px;
+               margin-bottom: 5px;
+            }
+            i.fas, i.far, i.fab {
+               font-size: 64px;
+               width: 64px;
+               height: 64px;
+               margin-top: 5px;
+               margin-bottom: 5px;
+               padding-bottom: 3px;
+            }
+         }
+
+         .webresources-item-title {
+            text-align: center;
+         }
+      }
+   }
+}

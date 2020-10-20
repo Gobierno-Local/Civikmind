@@ -5,11 +5,11 @@
  Manufacturersimports plugin for GLPI
  Copyright (C) 2003-2016 by the Manufacturersimports Development Team.
 
- https://github.com/InfotelGLPI
+ https://github.com/InfotelGLPI/manufacturersimports
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of Manufacturersimports.
 
  Manufacturersimports is free software; you can redistribute it and/or modify
@@ -31,16 +31,21 @@ if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
 }
 
+/**
+ * Class PluginManufacturersimportsIBM
+ */
 class PluginManufacturersimportsIBM extends CommonDBTM {
-   
-   function getSupplierInfo($compSerial=null,$otherSerial=null) {
-   
+
+   /**
+    * @see PluginManufacturersimportsManufacturer::getSupplierInfo()
+    */
+   function getSupplierInfo($compSerial = null, $otherSerial = null, $key = null, $apisecret = null,
+                            $supplierUrl = null) {
+
       $info["name"]="IBM";
       $info["supplier_url"] = "http://www-304.ibm.com/jct01004c/systems/support/supportsite.wss/warranty?";
-      $info["url"] = $info["supplier_url"]."type=".$otherSerial."&serial=".$compSerial."&brandind=5000008&Submit=Submit&action=warranty";
+      $info["url"] = $supplierUrl."type=".$otherSerial."&serial=".$compSerial."&brandind=5000008&Submit=Submit&action=warranty";
       return $info;
    }
-   
-}
 
-?>
+}

@@ -5,11 +5,11 @@
  Manufacturersimports plugin for GLPI
  Copyright (C) 2003-2016 by the Manufacturersimports Development Team.
 
- https://github.com/InfotelGLPI
+ https://github.com/InfotelGLPI/manufacturersimports
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of Manufacturersimports.
 
  Manufacturersimports is free software; you can redistribute it and/or modify
@@ -31,11 +31,20 @@ if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
 }
 
+/**
+ * Class PluginManufacturersimportsLog
+ */
 class PluginManufacturersimportsLog extends CommonDBTM {
 
-   function getFromDBbyDevice($items_id,$itemtype) {
+   /**
+    * @param $items_id
+    * @param $itemtype
+    *
+    * @return bool
+    */
+   function getFromDBbyDevice($items_id, $itemtype) {
       global $DB;
-      
+
       $query = "SELECT * FROM `".$this->getTable()."` " .
          "WHERE `items_id` = '" . $items_id . "'
          AND `itemtype` = '" . $itemtype . "' ";
@@ -43,7 +52,7 @@ class PluginManufacturersimportsLog extends CommonDBTM {
          if ($DB->numrows($result) != 1) {
             return false;
          }
-         $this->fields = $DB->fetch_assoc($result);
+         $this->fields = $DB->fetchAssoc($result);
          if (is_array($this->fields) && count($this->fields)) {
             return true;
          } else {
@@ -52,19 +61,30 @@ class PluginManufacturersimportsLog extends CommonDBTM {
       }
       return false;
    }
-   
-   function checkIfAlreadyImported($itemtype,$items_id) {
 
-      if ($this->getFromDBbyDevice($items_id,$itemtype))
+   /**
+    * @param $itemtype
+    * @param $items_id
+    *
+    * @return bool
+    */
+   function checkIfAlreadyImported($itemtype, $items_id) {
+
+      if ($this->getFromDBbyDevice($items_id, $itemtype)) {
          return $this->fields["id"];
-      else
+      } else {
          return false;
+      }
    }
-  
-   function reinitializeImport($itemtype,$items_id) {
+
+   /**
+    * @param $itemtype
+    * @param $items_id
+    */
+   function reinitializeImport($itemtype, $items_id) {
       global $DB;
 
-      if ($this->getFromDBbyDevice($items_id,$itemtype)) {
+      if ($this->getFromDBbyDevice($items_id, $itemtype)) {
 
          $doc= new Document();
          if ($doc->GetfromDB($this->fields["documents_id"])) {
@@ -72,18 +92,18 @@ class PluginManufacturersimportsLog extends CommonDBTM {
             $query ="DELETE
               FROM `glpi_documents_items`
               WHERE `documents_id` = '".$this->fields["documents_id"]."';";
-            $result=$DB->query($query);
+            $DB->query($query);
 
-            if (is_file(GLPI_DOC_DIR."/".$doc->fields["filename"]) 
-                  && !is_dir(GLPI_DOC_DIR."/".$doc->fields["filename"]))
+            if (is_file(GLPI_DOC_DIR."/".$doc->fields["filename"])
+                  && !is_dir(GLPI_DOC_DIR."/".$doc->fields["filename"])) {
                unlink(GLPI_DOC_DIR."/".$doc->fields["filename"]);
+            }
 
-            $doc->delete(array('id'=>$this->fields["documents_id"]),true);
+            $doc->delete(['id'=>$this->fields["documents_id"]], true);
          }
       }
-      if (isset($this->fields["id"]))
-         $this->delete(array('id'=>$this->fields["id"]));
+      if (isset($this->fields["id"])) {
+         $this->delete(['id'=>$this->fields["id"]]);
+      }
    }
 }
-
-?>

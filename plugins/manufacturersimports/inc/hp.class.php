@@ -5,11 +5,11 @@
  Manufacturersimports plugin for GLPI
  Copyright (C) 2003-2016 by the Manufacturersimports Development Team.
 
- https://github.com/InfotelGLPI
+ https://github.com/InfotelGLPI/manufacturersimports
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of Manufacturersimports.
 
  Manufacturersimports is free software; you can redistribute it and/or modify
@@ -31,79 +31,93 @@ if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
 }
 
+/**
+ * Class PluginManufacturersimportsHP
+ */
 class PluginManufacturersimportsHP extends PluginManufacturersimportsManufacturer {
 
-   function showDocTitle($output_type,$header_num) {
-      return Search::showHeaderItem($output_type,__('File'),$header_num);
+   /**
+    * @see PluginManufacturersimportsManufacturer::showDocTitle()
+    */
+   function showDocTitle($output_type, $header_num) {
+      return Search::showHeaderItem($output_type, __('File'), $header_num);
    }
-   
+
    function getSearchField() {
-      return "Start date";
+      return false;
    }
-   
-   function getSupplierInfo($compSerial=null,$otherSerial=null) {
+
+   /**
+    * @see PluginManufacturersimportsManufacturer::getSupplierInfo()
+    */
+   function getSupplierInfo($compSerial = null, $otherSerial = null, $key = null, $apisecret = null,
+                            $supplierUrl = null) {
       $info["name"]         = PluginManufacturersimportsConfig::HP;
-      $info["supplier_url"] = "http://h20000.www2.hp.com/bizsupport/TechSupport/WarrantyResults.jsp?";
-      $info["url"]         = $info["supplier_url"]."nickname=&sn=".$compSerial."&pn=".$otherSerial."&country=FR&lang=en&cc=us&find=Display+Warranty+Information+%BB&";
+      $info["supplier_url"] = "https://css.api.hp.com/oauth/v1/token";
+
+      $info["url"] = $supplierUrl;
+      $info['url_warranty'] = 'https://css.api.hp.com/productWarranty/v1/queries';
+
+      $info['post'] = ['apiKey'    => $key,
+                       'apiSecret' => $apisecret,
+                       'grantType' => 'client_credentials',
+                       'scope'     => 'warranty',
+                       'sn'        => rtrim($compSerial),
+      ];
+
+      if (!empty($otherSerial)) {
+         $info['post']['pn'] = $otherSerial;
+      }
+
       return $info;
    }
 
+   /**
+    * @see PluginManufacturersimportsManufacturer::getBuyDate()
+    */
    function getBuyDate($contents) {
-      //TODO translate variables in english
-      $matchesarray = array();
-      preg_match_all("/(\d\d [A-Z][a-z][a-z] \d{4})/", $contents, $matchesarray);
-
-      $datetimestamp = date('U');
-      for ($i = 0; $i < ((count($matchesarray[0]) /2)); $i++) {
-         $maDate = $matchesarray[0][($i * 2)];
-         $maDate = str_replace(' ','-',$maDate);
-         $maDate = str_replace('Jan','01',$maDate);
-         $maDate = str_replace('Feb','02',$maDate);
-         $maDate = str_replace('Mar','03',$maDate);
-         $maDate = str_replace('Apr','04',$maDate);
-         $maDate = str_replace('May','05',$maDate);
-         $maDate = str_replace('Jun','06',$maDate);
-         $maDate = str_replace('Jul','07',$maDate);
-         $maDate = str_replace('Aug','08',$maDate);
-         $maDate = str_replace('Sep','09',$maDate);
-         $maDate = str_replace('Oct','10',$maDate);
-         $maDate = str_replace('Nov','11',$maDate);
-         $maDate = str_replace('Dec','12',$maDate);
-         list($jour, $mois, $annee) = explode('-', $maDate);
-         $maDate = date("U",mktime(0, 0, 0, $mois, $jour, $annee));
-         if ($maDate < $datetimestamp) {
-            $datetimestamp = $maDate;
-         }
+      $contents = json_decode($contents, true);
+      $contents = reset($contents);
+      if (isset($contents['startDate'])) {
+         return $contents['startDate'];
       }
-      $maDate = date("Y-m-d", $datetimestamp);
-      return $maDate;
+      return false;
    }
 
-   function getExpirationDate($contents) {
-      //TODO translate variables in english
-      $field_fin    = "End Date";
-      $matchesarray = array();
-      $searchfin    = stristr($contents, $field_fin);
-      preg_match_all("/(\d\d [A-Z][a-z][a-z] \d{4})/", $searchfin, $matchesarray);
-      $maDateFin = $matchesarray[0][1];
-      $maDateFin = str_replace(' ','-',$maDateFin);
-      $maDateFin = str_replace('Jan','01',$maDateFin);
-      $maDateFin = str_replace('Feb','02',$maDateFin);
-      $maDateFin = str_replace('Mar','03',$maDateFin);
-      $maDateFin = str_replace('Apr','04',$maDateFin);
-      $maDateFin = str_replace('May','05',$maDateFin);
-      $maDateFin = str_replace('Jun','06',$maDateFin);
-      $maDateFin = str_replace('Jul','07',$maDateFin);
-      $maDateFin = str_replace('Aug','08',$maDateFin);
-      $maDateFin = str_replace('Sep','09',$maDateFin);
-      $maDateFin = str_replace('Oct','10',$maDateFin);
-      $maDateFin = str_replace('Nov','11',$maDateFin);
-      $maDateFin = str_replace('Dec','12',$maDateFin);
+   /**
+    * @see PluginManufacturersimportsManufacturer::getStartDate()
+    */
+   function getStartDate($contents) {
+      return self::getBuyDate($contents);
+   }
 
-      list($jour, $mois, $annee) = explode('-', $maDateFin);
-      $maDateFin = $annee."-".$mois."-".$jour;
-      return $maDateFin;
+   /**
+    * @see PluginManufacturersimportsManufacturer::getExpirationDate()
+    */
+   function getExpirationDate($contents) {
+
+      $contents = json_decode($contents, true);
+      $contents = reset($contents);
+      if (isset($contents['endDate'])) {
+         return $contents['endDate'];
+      }
+      return false;
+   }
+
+   /**
+    * @see PluginManufacturersimportsManufacturer::getWarrantyInfo()
+    */
+   function getWarrantyInfo($contents) {
+      $contents = json_decode($contents, true);
+      $contents = reset($contents);
+
+      $warrantyInfo = "";
+      if (isset($contents['status'])) {
+         $warrantyInfo .= $contents['status'] . " ";
+      }
+      if (isset($contents['type'])) {
+         $warrantyInfo .= $contents['type'] . " ";
+      }
+      return $warrantyInfo;
    }
 }
-
-?>

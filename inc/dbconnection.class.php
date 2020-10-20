@@ -2,7 +2,7 @@
 /**
  * ---------------------------------------------------------------------
  * GLPI - Gestionnaire Libre de Parc Informatique
- * Copyright (C) 2015-2017 Teclib' and contributors.
+ * Copyright (C) 2015-2020 Teclib' and contributors.
  *
  * http://glpi-project.org
  *
@@ -29,10 +29,6 @@
  * along with GLPI. If not, see <http://www.gnu.org/licenses/>.
  * ---------------------------------------------------------------------
  */
-
-/** @file
-* @brief
-*/
 
 if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access this file directly");
@@ -260,10 +256,12 @@ class DBConnection extends CommonDBTM {
    /**
     *  Establish a connection to a mysql server (main or replicate)
     *
-    * @param $use_slave    try to connect to slave server first not to main server
-    * @param $required     connection to the specified server is required
-    *                      (if connection failed, do not try to connect to the other server)
-    * @param $display      display error message (true by default)
+    * @param boolean $use_slave try to connect to slave server first not to main server
+    * @param boolean $required  connection to the specified server is required
+    *                           (if connection failed, do not try to connect to the other server)
+    * @param boolean $display   display error message (true by default)
+    *
+    * @return boolean True if successfull, false otherwise
    **/
    static function establishDBConnection($use_slave, $required, $display = true) {
       global $DB;
@@ -353,21 +351,30 @@ class DBConnection extends CommonDBTM {
     *  Display a common mysql connection error
    **/
    static function displayMySQLError() {
+      global $DB;
+
+      $error = $DB instanceof DBmysql ? $DB->error : 1;
+      switch ($error) {
+         case 2:
+            $en_msg = "Use of mysqlnd driver is required for exchanges with the MySQL server.";
+            $fr_msg = "L'utilisation du driver mysqlnd est requise pour les échanges avec le serveur MySQL.";
+            break;
+         case 1:
+         default:
+            $fr_msg = "Le serveur Mysql est inaccessible. Vérifiez votre configuration.";
+            $en_msg = "A link to the SQL server could not be established. Please check your configuration.";
+            break;
+      }
 
       if (!isCommandLine()) {
          Html::nullHeader("Mysql Error", '');
-         echo "<div class='center'><p class ='b'>
-                A link to the SQL server could not be established. Please check your configuration.
-                </p><p class='b'>
-                Le serveur Mysql est inaccessible. Vérifiez votre configuration</p>
-               </div>";
+         echo "<div class='center'><p class ='b'>$en_msg</p><p class='b'>$fr_msg</p></div>";
          Html::nullFooter();
       } else {
-         echo "A link to the SQL server could not be established. Please check your configuration.\n";
-         echo "Le serveur Mysql est inaccessible. Vérifiez votre configuration\n";
+         echo "$en_msg\n$fr_msg\n";
       }
 
-      die();
+      die(1);
    }
 
 
@@ -382,11 +389,13 @@ class DBConnection extends CommonDBTM {
 
 
    /**
-    *  Cron process to check DB replicate state
+    * Cron process to check DB replicate state
     *
-    * @param $task to log and get param
+    * @param CronTask $task to log and get param
+    *
+    * @return integer
    **/
-   static function cronCheckDBreplicate($task) {
+   static function cronCheckDBreplicate(CronTask $task) {
       global $DB;
 
       //Lauch cron only is :
@@ -488,8 +497,10 @@ class DBConnection extends CommonDBTM {
 
       $cron           = new CronTask();
       $cron->getFromDBbyName('DBConnection', 'CheckDBreplicate');
-      $input['id']    = $cron->fields['id'];
-      $input['state'] = ($enable?1:0);
+      $input = [
+         'id'    => $cron->fields['id'],
+         'state' => ($enable ? 1 : 0)
+      ];
       $cron->update($input);
    }
 

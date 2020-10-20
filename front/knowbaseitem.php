@@ -2,7 +2,7 @@
 /**
  * ---------------------------------------------------------------------
  * GLPI - Gestionnaire Libre de Parc Informatique
- * Copyright (C) 2015-2017 Teclib' and contributors.
+ * Copyright (C) 2015-2020 Teclib' and contributors.
  *
  * http://glpi-project.org
  *
@@ -30,10 +30,6 @@
  * ---------------------------------------------------------------------
  */
 
-/** @file
-* @brief
-*/
-
 include ('../inc/includes.php');
 
 if (!Session::haveRightsOr('knowbase', [READ, KnowbaseItem::READFAQ])) {
@@ -41,7 +37,7 @@ if (!Session::haveRightsOr('knowbase', [READ, KnowbaseItem::READFAQ])) {
    Html::displayRightError();
 }
 if (isset($_GET["id"])) {
-   Html::redirect($CFG_GLPI["root_doc"]."/front/knowbaseitem.form.php?id=".$_GET["id"]);
+   Html::redirect(KnowbaseItem::getFormURLWithID($_GET["id"]));
 }
 
 Html::header(KnowbaseItem::getTypeName(1), $_SERVER['PHP_SELF'], "tools", "knowbaseitem");

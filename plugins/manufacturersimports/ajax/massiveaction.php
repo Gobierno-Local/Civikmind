@@ -5,11 +5,11 @@
  Manufacturersimports plugin for GLPI
  Copyright (C) 2003-2016 by the Manufacturersimports Development Team.
 
- https://github.com/InfotelGLPI
+ https://github.com/InfotelGLPI/manufacturersimports
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of Manufacturersimports.
 
  Manufacturersimports is free software; you can redistribute it and/or modify
@@ -38,12 +38,12 @@ $log=new PluginManufacturersimportsLog();
 $config = new PluginManufacturersimportsConfig();
 
 Html::header(_n('Suppliers import', 'Suppliers imports', 2, 'manufacturersimports'),
-               $_SERVER['PHP_SELF'],"tools", "pluginmanufacturersimportsmenu");
+               $_SERVER['PHP_SELF'], "tools", "pluginmanufacturersimportsmenu");
 
 $config->checkGlobal(UPDATE);
 
 if (isset($_POST["action"])&&isset($_POST["id"])&&isset($_POST["item"])&&count($_POST["item"])) {
-   switch($_POST["action"]) {
+   switch ($_POST["action"]) {
       case "import":
          PluginManufacturersimportsPostImport::massiveimport($_POST);
          break;
@@ -51,11 +51,11 @@ if (isset($_POST["action"])&&isset($_POST["id"])&&isset($_POST["item"])&&count($
       case "reinit_once":
          foreach ($_POST["item"] as $key => $val) {
             if ($val==1) {
-               $log->reinitializeImport($_POST["itemtype"],$key);
+               $log->reinitializeImport($_POST["itemtype"], $key);
             }
-      }
-      Session::addMessageAfterRedirect(__('Operation successful'));
-      Html::redirect($_SERVER['HTTP_REFERER']."?itemtype=".$_POST["itemtype"].
+         }
+         Session::addMessageAfterRedirect(__('Operation successful'));
+         Html::redirect($_SERVER['HTTP_REFERER']."?itemtype=".$_POST["itemtype"].
                      "&manufacturers_id=".$_POST["manufacturers_id"].
                      "&start=".$_POST["start"].
                      "&imported=".$_POST["imported"]);
@@ -63,10 +63,8 @@ if (isset($_POST["action"])&&isset($_POST["id"])&&isset($_POST["item"])&&count($
    }
 } else {
         echo "<div align='center'>";
-        echo "<img src=\"".$CFG_GLPI["root_doc"]."/pics/warning.png\" alt=\"warning\"><br><br>";
+        echo "<i class='fas fa-exclamation-triangle fa-4x' style='color:orange'></i><br><br>";
         echo "<b>".__('No selected element or badly defined operation')."</b></div>";
 }
 
 Html::footer();
-
-?>

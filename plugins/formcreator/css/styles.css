@@ -1,3 +1,32 @@
+/**
+ * ---------------------------------------------------------------------
+ * Formcreator is a plugin which allows creation of custom forms of
+ * easy access.
+ * ---------------------------------------------------------------------
+ * LICENSE
+ *
+ * This file is part of Formcreator.
+ *
+ * Formcreator is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * Formcreator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Formcreator. If not, see <http://www.gnu.org/licenses/>.
+ * ---------------------------------------------------------------------
+ * @copyright Copyright © 2011 - 2019 Teclib'
+ * @license   http://www.gnu.org/licenses/gpl.txt GPLv3+
+ * @link      https://github.com/pluginsGLPI/formcreator/
+ * @link      https://pluginsglpi.github.io/formcreator/
+ * @link      http://plugins.glpi-project.org/#/plugin/formcreator
+ * ---------------------------------------------------------------------
+ */
 html, body {
     height: 100%;
 }
@@ -182,7 +211,7 @@ form.formcreator_form {
    margin: 0 0 10px;
 }
 
-.formcreator_form > .form_section > h2 {
+.formcreator_form  .form_section > h2 {
    background: #1B2F62; /*#E1D39E;*/
    color: #FFF;
    margin:  0 0 10px;
@@ -228,6 +257,7 @@ form.formcreator_form {
 .formcreator_form .description_field {
    border-left: 4px solid #999;
    margin: 10px 15px;
+   word-wrap: break-word;
 }
 
 .formcreator_form .form-group .form_field > input,
@@ -308,51 +338,51 @@ form.formcreator_form {
    border: 2px solid #727272;
 }
 
-
-.formcreator_radios input[type = radio] {
+.formcreator_form div.radio {
+   padding: 3.7px 0;
+}
+.formcreator_form div.radio label {
+   cursor: pointer;
+}
+.radios .form-group-radio {
+   position: relative;
+   display: inline-block;
+   width: 16px;
+   height: 16px;
+}
+.radios .form-group-radio + label {
+   margin-left: 7px;
+}
+input[type = radio] {
    display: none;
 }
-.formcreator_radios input[type = radio] + label {
-   cursor: pointer;
-   padding-left: 22px;
-   position: relative;
-   display: block;
-   height: 26px;
+.label-radio .radio {
+   padding: 2px 0;
 }
-.formcreator_radios input[type = radio] + label:before,
-.formcreator_radios input[type = radio] + label:after {
+input[type = radio] + label.label-radio span {
+   display: inline-block;
    position: absolute;
-   content: "";
-   border-radius: 50%;
-   transition: all 0.3s ease;
+   width: 16px;
+   height: 16px;
 }
-.formcreator_radios input[type = radio] + label:before {
-   top: -1px;
-   left: 0;
-   width: 15px;
-   height: 15px;
-   background-color: #727272;
-   box-shadow: inset 0 0 0 13px #FFF;
+input[type = radio] + label.label-radio .box {
+   background-color: #fff;
    border: 2px solid #727272;
+   border-radius: 50%;
 }
-.formcreator_radios input[type = radio] + label:after {
-   top: 40%;
-   left: 9px;
-   width: 54px;
-   height: 54px;
-   background-color: rgba(50, 50, 50, 0.1);
-   transform: translate(-50%, -50%) scale(0);
+input[type = radio] + label.label-radio .check {
+   left: 4px;
+   top: 4px;
+   width: 0px;
+   height: 0px;
+   opacity: 0;
 }
-.formcreator_radios input[type = radio]:checked + label:before {
-   box-shadow: inset 0 0 0 2px #E0E0E0;
+input[type = radio]:checked + label.label-radio .check {
+   border: 6px solid #727272;
+   border-radius: 50%;
+   transition: opacity 0.3s ease;
+   opacity: 1;
 }
-.formcreator_radios input[type = radio]:checked + label:after {
-   transform: translate(-50%, -50%) scale(1);
-   -moz-animation: ripple 1s forwards;
-   -webkit-animation: ripple 1s forwards;
-   animation: ripple 1s forwards;
-}
-
 
 .formcreator_form .select2-container-multi .select2-choices  {
    width: 650px;
@@ -383,7 +413,6 @@ form.formcreator_form {
    font-size: 0.8em;
    color: #333;
    padding: 3px 0;
-   font-style: italic;
 }
 .formcreator_form .form-group > .help-block p {
    margin: 0;
@@ -431,7 +460,6 @@ form.formcreator_form {
 .div_show_condition_field, .div_show_condition_operator,
 .div_show_condition_value, .div_show_condition_logic,
 .div_show_condition_add, .div_show_condition_remove {
-   //float: left;
    display: inline-block;
 }
 .div_show_condition_field .select2-container,
@@ -475,12 +503,6 @@ form.formcreator_form {
 
 #footer-login{
    display: none;
-}
-
-.validators_bloc .select2-container {
-   float: left;
-   width: 13% !important;
-   margin: 0 1% 0 0;
 }
 
 #tag_question_value .select2-container, #tag_specific_value .select2-container {
@@ -788,7 +810,6 @@ form.formcreator_form {
    cursor: pointer;
    border-radius: 0;
    box-sizing: border-box;
-   background-color: #E7E7E7;
    animation-name: fadeInUp ;
    animation-iteration-count: 1;
    animation-timing-function: ease-in;
@@ -806,19 +827,17 @@ a.plugin_formcreator_formTile_title {
    font-size: 1.1em;
    padding: 10px 40px 15px 10px;
    display: block;
-   background: transparent no-repeat top 10px right 10px;
 }
 
 .plugin_formcreator_formTile:hover a.plugin_formcreator_formTile_title {
    cursor: pointer;
 }
 
-.plugin_formcreator_formTile.form a.plugin_formcreator_formTile_title {
-   background-image: url(../pics/form.png);
-}
-
-.plugin_formcreator_formTile.faq a.plugin_formcreator_formTile_title {
-   background-image: url(../pics/faq.png);
+.plugin_formcreator_formTile  i.fa, .plugin_formcreator_formTile  i.fab, .plugin_formcreator_formTile  i.fas {
+   font-size: 2.5em;
+   margin-right: 10px;
+   float: left;
+   margin: 10px;
 }
 
 .plugin_formcreator_formTile_description {
@@ -849,6 +868,7 @@ a.plugin_formcreator_formTile_title {
    padding: 10px 0 3px 23px;
    margin: -10px 0 -3px -23px;
    background-color: #FFFFFF;
+   margin-left: 300px;
 }
 
 #plugin_formcreator_wizard_forms {
@@ -1076,7 +1096,7 @@ a.plugin_formcreator_formTile_title {
 #c_menu li label {
    display: inline-block;
 }
-.toggle_menu #c_menu li label {
+.toggle_menu #c_menu li span.label {
    display: none;
 }
 .toggle_menu .plugin_formcreator_leftHeader#header .plugin_formcreator_leftMenu {
@@ -1123,9 +1143,9 @@ a.plugin_formcreator_formTile_title {
 .plugin_formcreator_services li {
    padding:  5px 0 5px 13px;
    width: 100%;
-   height: 48px;
    line-height: 38px;
    box-sizing: border-box;
+   clear: left;
 }
 
 .plugin_formcreator_leftMenu .plugin_formcreator_services li a {
@@ -1183,11 +1203,13 @@ a.plugin_formcreator_formTile_title {
 
 span.fc_list_icon {
    width: 42px;
-   height: 24px;
-   display: inline-block;
+   height: 48px;
    vertical-align: middle;
    font-size: 1.7em;
    color: #FFFFFF;
+   float: left;
+   padding-top: 5px;
+   box-sizing: border-box;
 }
 
 .plugin_formcreator_entityProfile {
@@ -1219,7 +1241,6 @@ span.fc_list_icon {
 }
 
 #plugin_formcreator_avatar {
-   display: inline-block;
    border: 2px inset white;
    border-radius: 50%;
    padding: 2px;
@@ -1243,7 +1264,6 @@ span.fc_list_icon {
 
 .plugin_formcreator_userMenu_icons {
    float: right;
-   display: inline-block;
    margin: 12px 8px 0 8px;
 }
 
@@ -1350,6 +1370,20 @@ span.fc_list_icon {
 
 .form_header ul ul, .form_section ul ul, .form_header ol ul, .form_section ol ul {
    list-style-type: circle;
+}
+
+
+/* Active / inactive light for forms */
+.plugin-forcreator-active {
+   color: #009933;
+}
+
+.plugin-forcreator-inactive {
+   color: #a0a0a0;
+}
+
+.plugin_formcreator_cancel_my_ticket {
+   background: #fec95c;
 }
 
 /* ################--------------- Responsive  ---------------#################### */

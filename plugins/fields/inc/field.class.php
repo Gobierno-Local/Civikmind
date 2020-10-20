@@ -7,6 +7,10 @@ class PluginFieldsField extends CommonDBTM {
       return self::canUpdate();
    }
 
+   static function canPurge() {
+      return self::canUpdate();
+   }
+
    /**
     * Install or update fields
     *
@@ -38,7 +42,7 @@ class PluginFieldsField extends CommonDBTM {
                   KEY `plugin_fields_containers_id`   (`plugin_fields_containers_id`),
                   KEY `is_active`                     (`is_active`),
                   KEY `is_readonly`                   (`is_readonly`)
-               ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;";
+               ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;";
             $DB->query($query) or die ($DB->error());
       }
 
@@ -56,6 +60,9 @@ class PluginFieldsField extends CommonDBTM {
          $migration->addField($table, 'mandatory', 'bool', ['value' => 0]);
       }
       $migration->executeMigration();
+
+      $toolbox = new PluginFieldsToolbox();
+      $toolbox->fixFieldsNames($migration, ['NOT' => ['type' => 'dropdown']]);
 
       return true;
    }
@@ -78,24 +85,19 @@ class PluginFieldsField extends CommonDBTM {
       //parse name
       $input['name'] = $this->prepareName($input);
 
-      //dropdowns : create files
       if ($input['type'] === "dropdown") {
          //search if dropdown already exist in this container
-         $found = $this->find("name = '".$input['name']."'
-                               AND plugin_fields_containers_id = '".
-                                   $input['plugin_fields_containers_id']."'");
+         $found = $this->find(
+            [
+               'name' => $input['name'],
+               'plugin_fields_containers_id' => $input['plugin_fields_containers_id'],
+            ]
+         );
 
          //reject adding for same dropdown on same bloc
          if (!empty($found)) {
             Session::AddMessageAfterRedirect(__("You cannot add same field 'dropdown' on same bloc", 'fields', false, ERROR));
             return false;
-         }
-
-         //search if dropdown already exist in other container
-         $found = $this->find("name = '".$input['name']."'");
-         //for dropdown, if already exist, don't create files
-         if (empty($found)) {
-            PluginFieldsDropdown::create($input);
          }
 
          $oldname = $input['name'];
@@ -187,14 +189,16 @@ class PluginFieldsField extends CommonDBTM {
     * @return string  the parsed name
     */
    function prepareName($input) {
+      $toolbox = new PluginFieldsToolbox();
+
       //contruct field name by processing label (remove non alphanumeric char)
       if (empty($input['name'])) {
-         $input['name'] = strtolower(preg_replace("/[^\da-z]/i", "", $input['label']))."field";
+         $input['name'] = $toolbox->getSystemNameFromLabel($input['label']) . 'field';
       }
 
       //for dropdown, if already exist, link to it
       if (isset($input['type']) && $input['type'] === "dropdown") {
-         $found = $this->find("name = '".$input['name']."'");
+         $found = $this->find(['name' => $input['name']]);
          if (!empty($found)) {
             return $input['name'];
          }
@@ -207,8 +211,8 @@ class PluginFieldsField extends CommonDBTM {
       $field      = new self;
       $field_name = $input['name'];
       $i = 2;
-      while (count($field->find("name = '$field_name'")) > 0) {
-         $field_name = $input['name'].$i;
+      while (count($field->find(['name' => $field_name])) > 0) {
+         $field_name = $toolbox->getIncrementedSystemName($input['name'], $i);
          $i++;
       }
 
@@ -223,20 +227,20 @@ class PluginFieldsField extends CommonDBTM {
    function getNextRanking() {
       global $DB;
 
-      $sql = "SELECT max(`ranking`) AS rank
+      $sql = "SELECT max(`ranking`) AS `rank`
               FROM `".self::getTable()."`
               WHERE `plugin_fields_containers_id` = '".
                   $this->fields['plugin_fields_containers_id']."'";
       $result = $DB->query($sql);
 
       if ($DB->numrows($result) > 0) {
-         $data = $DB->fetch_assoc($result);
+         $data = $DB->fetchAssoc($result);
          return $data["rank"] + 1;
       }
       return 0;
    }
 
-   function getTabNameForItem(CommonGLPI $item, $withtemplate=0) {
+   function getTabNameForItem(CommonGLPI $item, $withtemplate = 0) {
       if (!$withtemplate) {
          $nb = 0;
          switch ($item->getType()) {
@@ -248,16 +252,16 @@ class PluginFieldsField extends CommonDBTM {
 
       return self::createTabEntry(__("Fields", "fields"),
                    countElementsInTable(self::getTable(),
-                                        "`plugin_fields_containers_id` = '".$item->getID()."'"));
+                                        ['plugin_fields_containers_id' => $item->getID()]));
    }
 
-   static function displayTabContentForItem(CommonGLPI $item, $tabnum=1, $withtemplate=0) {
+   static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0) {
       $fup = new self();
       $fup->showSummary($item);
       return true;
    }
 
-   function defineTabs($options = array()) {
+   function defineTabs($options = []) {
       $ong = [];
       $this->addDefaultFormTab($ong);
       $this->addStandardTab('PluginFieldsLabelTranslation', $ong, $options);
@@ -283,16 +287,21 @@ class PluginFieldsField extends CommonDBTM {
       $rand   = mt_rand();
 
       echo "<div id='viewField$cID$rand'></div>";
-      Html::scriptStart();
-      echo "viewAddField$cID$rand = function() {";
-      Ajax::updateItemJsCode("viewField" . $cID . "$rand",
-                             $CFG_GLPI["root_doc"]."/ajax/viewsubitem.php",
-                             ['type'                        => __CLASS__,
-                              'parenttype'                  => 'PluginFieldsContainer',
-                              'plugin_fields_containers_id' => $cID,
-                              'id'                          => -1]);
-      echo "};";
-      echo Html::scriptEnd();
+
+      echo Html::scriptBlock('
+         viewAddField' . $cID . $rand . ' = function() {
+            $("#viewField' . $cID . $rand . '").load(
+               "' . $CFG_GLPI['root_doc'] . '/ajax/viewsubitem.php",
+               ' . json_encode([
+                  'type'                        => __CLASS__,
+                  'parenttype'                  => PluginFieldsContainer::class,
+                  'plugin_fields_containers_id' => $cID,
+                  'id'                          => -1
+               ]) . '
+            );
+         };
+      ');
+
       echo "<div class='center'>".
            "<a href='javascript:viewAddField$cID$rand();'>";
       echo __("Add a new field", "fields")."</a></div><br>";
@@ -319,12 +328,12 @@ class PluginFieldsField extends CommonDBTM {
 
          Session::initNavigateListItems('PluginFieldsField', __('Fields list'));
 
-         while ($data = $DB->fetch_array($result)) {
+         while ($data = $DB->fetchArray($result)) {
             if ($this->getFromDB($data['id'])) {
                echo "<tr class='tab_bg_2' style='cursor:pointer'>";
 
                echo "<td>";
-               echo "<a href='".$CFG_GLPI["root_doc"]."/plugins/fields/front/field.form.php?id={$this->getID()}'>{$this->fields['label']}</a>";
+               echo "<a href='".Plugin::getWebDir('fields')."/front/field.form.php?id={$this->getID()}'>{$this->fields['label']}</a>";
                echo "</td>";
                echo "<td>".$fields_type[$this->fields['type']]."</td>";
                echo "<td>".$this->fields['default_value']."</td>";
@@ -356,7 +365,7 @@ class PluginFieldsField extends CommonDBTM {
    }
 
 
-   function showForm($ID, $options = array()) {
+   function showForm($ID, $options = []) {
       global $CFG_GLPI;
 
       if (isset($options['parent_id']) && !empty($options['parent_id'])) {
@@ -398,7 +407,7 @@ class PluginFieldsField extends CommonDBTM {
       Html::autocompletionTextField($this, 'default_value',
                                     ['value' => $this->fields["default_value"]]);
       if ($this->fields["type"] == "dropdown") {
-         echo '<a href="'.$CFG_GLPI['root_doc'].'/plugins/fields/front/commondropdown.php?ddtype='.
+         echo '<a href="'.Plugin::getWebDir('fields').'/front/commondropdown.php?ddtype='.
                           $this->fields['name'] .'dropdown">
                <img src="'.$CFG_GLPI['root_doc'].'/pics/options_search.png" class="pointer"
                     alt="'.__('Configure', 'fields').'" title="'.__('Configure fields values', 'fields').'">
@@ -439,16 +448,15 @@ class PluginFieldsField extends CommonDBTM {
 
       //profile restriction (for reading profile)
       $profile = new PluginFieldsProfile;
-      $found = $profile->find("`profiles_id` = '".$_SESSION['glpiactiveprofile']['id']."'
-                               AND `plugin_fields_containers_id` = '$c_id'");
+      $found = $profile->find(['profiles_id' => $_SESSION['glpiactiveprofile']['id'],
+                               'plugin_fields_containers_id' => $c_id]);
       $first_found = array_shift($found);
       $canedit = ($first_found['right'] == CREATE);
 
       //get fields for this container
       $field_obj = new self();
-      $fields = $field_obj->find("plugin_fields_containers_id = $c_id AND is_active = 1", "ranking");
-      echo "<form method='POST' action='".$CFG_GLPI["root_doc"].
-           "/plugins/fields/front/container.form.php'>";
+      $fields = $field_obj->find(['plugin_fields_containers_id' => $c_id, 'is_active' => 1], "ranking");
+      echo "<form method='POST' action='".Plugin::getWebDir('fields')."/front/container.form.php'>";
       echo Html::hidden('plugin_fields_containers_id', ['value' => $c_id]);
       echo Html::hidden('items_id', ['value' => $items_id]);
       echo Html::hidden('itemtype', ['value' => $itemtype]);
@@ -480,19 +488,20 @@ class PluginFieldsField extends CommonDBTM {
     * @return void
     */
    static private function showDomContainer($c_id, $itemtype, $items_id, $type = "dom", $subtype = "") {
-      if (is_array($c_id)) {
-         $condition = "plugin_fields_containers_id IN (".implode(", ", $c_id).")";
+
+      if ($c_id !== false) {
+         //get fields for this container
+         $field_obj = new self();
+         $fields = $field_obj->find(
+            [
+               'plugin_fields_containers_id' => $c_id,
+               'is_active' => 1,
+            ],
+            "ranking"
+         );
       } else {
-         $condition = "plugin_fields_containers_id = $c_id";
+         $fields = [];
       }
-
-      if ($c_id === false) {
-         $condition = "1=0";
-      }
-
-      //get fields for this container
-      $field_obj = new self();
-      $fields = $field_obj->find($condition." AND is_active = 1", "ranking");
 
       echo Html::hidden('_plugin_fields_type', ['value' => $type]);
       echo Html::hidden('_plugin_fields_subtype', ['value' => $subtype]);
@@ -514,11 +523,7 @@ class PluginFieldsField extends CommonDBTM {
 
       $functions = array_column(debug_backtrace(), 'function');
 
-      if (!isset($_SESSION['glpi_tabs'][strtolower($item::getType())])) {
-         return;
-      };
-
-      $subtype = $_SESSION['glpi_tabs'][strtolower($item::getType())];
+      $subtype = isset($_SESSION['glpi_tabs'][strtolower($item::getType())]) ? $_SESSION['glpi_tabs'][strtolower($item::getType())] : "";
       $type = substr($subtype, -strlen('$main')) === '$main'
               || in_array('showPrimaryForm', $functions)
               || in_array('showFormHelpdesk', $functions)
@@ -548,7 +553,7 @@ class PluginFieldsField extends CommonDBTM {
       $current_entity = $item::getType() == Entity::getType()
                            ? $item->getID()
                            : $item->fields['entities_id'];
-      if (!in_array($current_entity, $entities)) {
+      if ($item->isEntityAssign() && !in_array($current_entity, $entities)) {
          return false;
       }
 
@@ -597,15 +602,22 @@ class PluginFieldsField extends CommonDBTM {
       $obj = new $classname;
 
       //find row for this object with the items_id
-      $found_values = $obj->find("plugin_fields_containers_id = ".
-                                 $first_field['plugin_fields_containers_id']." AND items_id = ".
-                                 $items_id);
+      $found_values = $obj->find(
+         [
+            'plugin_fields_containers_id' => $first_field['plugin_fields_containers_id'],
+            'items_id' => $items_id,
+         ]
+      );
       $found_v = array_shift($found_values);
 
       // find profiles (to check if current profile can edit fields)
       $fprofile = new PluginFieldsProfile;
-      $found_p = $fprofile->find("`profiles_id` = '".$_SESSION['glpiactiveprofile']['id']."'
-                                  AND `plugin_fields_containers_id` = '".$first_field['plugin_fields_containers_id']."'");
+      $found_p = $fprofile->find(
+         [
+            'profiles_id' => $_SESSION['glpiactiveprofile']['id'],
+            'plugin_fields_containers_id' => $first_field['plugin_fields_containers_id'],
+         ]
+      );
       $first_found_p = array_shift($found_p);
 
       // test status for "CommonITILObject" objects
@@ -782,7 +794,7 @@ class PluginFieldsField extends CommonDBTM {
                   break;
                case 'dropdownuser':
                   if ($massiveaction) {
-                     continue;
+                     break;
                   }
                   if ($canedit && !$readonly) {
                      $html.= User::dropdown(['name'      => $field['name'],
@@ -790,10 +802,10 @@ class PluginFieldsField extends CommonDBTM {
                                              'entity'    => -1,
                                              'right'     => 'all',
                                              'display'   => false,
-                                             'condition' => 'is_active=1 && is_deleted=0']);
+                                             'condition' => ['is_active' => 1, 'is_deleted' => 0]]);
                   } else {
                      $showuserlink = 0;
-                     if (Session::haveRight('user', 'r')) {
+                     if (Session::haveRight('user', READ)) {
                         $showuserlink = 1;
                      }
                      $html.= getUserName($value, $showuserlink);
@@ -836,7 +848,7 @@ class PluginFieldsField extends CommonDBTM {
          return false;
       }
 
-      $data = $DB->fetch_assoc($res);
+      $data = $DB->fetchAssoc($res);
 
       //display an hidden post field to store container id
       echo Html::hidden('c_id', ['value' => $data['plugin_fields_containers_id']]);
@@ -877,7 +889,43 @@ class PluginFieldsField extends CommonDBTM {
    }
 
    function post_addItem() {
+      $input = $this->fields;
+
+      //dropdowns : create files
+      if ($input['type'] === "dropdown") {
+         //search if dropdown already exist in other container
+         $found = $this->find(['id' => ['!=', $input['id']], 'name' => $input['name']]);
+         //for dropdown, if already exist, don't create files
+         if (empty($found)) {
+            PluginFieldsDropdown::create($input);
+         }
+      }
+
       //Create label translation
       PluginFieldsLabelTranslation::createForItem($this);
+   }
+
+   function rawSearchOptions() {
+      $tab = [];
+
+      $tab[] = [
+         'id'            => 2,
+         'table'         => self::getTable(),
+         'field'         => 'label',
+         'name'          => __('Label'),
+         'massiveaction' => false,
+         'autocomplete'  => true,
+      ];
+
+      $tab[] = [
+         'id'            => 3,
+         'table'         => self::getTable(),
+         'field'         => 'default_value',
+         'name'          => __('Default values'),
+         'massiveaction' => false,
+         'autocomplete'  => true,
+      ];
+
+      return $tab;
    }
 }

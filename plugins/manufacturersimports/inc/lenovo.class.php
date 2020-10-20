@@ -5,7 +5,7 @@
  Manufacturersimports plugin for GLPI
  Copyright (C) 2003-2011 by the Manufacturersimports Development Team.
 
- https://forge.indepnet.net/projects/manufacturersimports
+ https://github.com/InfotelGLPI/manufacturersimports
  -------------------------------------------------------------------------
 
  LICENSE
@@ -31,107 +31,124 @@ if (!defined('GLPI_ROOT')) {
     die("Sorry. You can't access directly to this file");
 }
 
+/**
+ * Class PluginManufacturersimportsLenovo
+ */
 class PluginManufacturersimportsLenovo extends PluginManufacturersimportsManufacturer {
 
-   function showCheckbox($ID,$sel,$otherSerial=false) {
+   /**
+    * @see PluginManufacturersimportsManufacturer::showCheckbox()
+    */
+   function showCheckbox($ID, $sel, $otherSerial = false) {
 
       return "<input type='checkbox' name='item[".$ID."]' value='1' $sel>";
 
    }
 
-   function showItemTitle($output_type,$header_num) {
+   /**
+    * @see PluginManufacturersimportsManufacturer::showItemTitle()
+    */
+   function showItemTitle($output_type, $header_num) {
 
-      return Search::showHeaderItem($output_type,__('Model number', 'manufacturersimports'),$header_num);
-
-   }
-
-   function showDocTitle($output_type,$header_num) {
-
-      return Search::showHeaderItem($output_type,__('File'),$header_num);
+      return Search::showHeaderItem($output_type, __('Model number', 'manufacturersimports'), $header_num);
 
    }
 
-   function showItem($output_type,$otherSerial,$item_num,$row_num) {
+   /**
+    * @see PluginManufacturersimportsManufacturer::showDocTitle()
+    */
+   function showDocTitle($output_type, $header_num) {
 
-      return Search::showItem($output_type,$otherSerial,$item_num,$row_num);
+      return Search::showHeaderItem($output_type, __('File'), $header_num);
+
+   }
+
+   /**
+    * @see PluginManufacturersimportsManufacturer::showItem()
+    */
+   function showItem($output_type, $otherSerial = false, $item_num, $row_num) {
+
+      return Search::showItem($output_type, $otherSerial, $item_num, $row_num);
    }
 
    function getSearchField() {
 
-      $field = "WarrantyStatusInfoWrap";
-
-      return $field;
+      return false;
    }
 
-   function getSupplierInfo($compSerial=null, $otherserial=null) {
+   /**
+    * @see PluginManufacturersimportsManufacturer::getSupplierInfo()
+    */
+   function getSupplierInfo($compSerial = null, $otherSerial = null, $key = null, $apisecret = null,
+                            $supplierUrl = null) {
 
       $info["name"]         = PluginManufacturersimportsConfig::LENOVO;
-      $info["supplier_url"] = "http://shop.lenovo.com/SEUILibrary/controller/e/web/LenovoPortal/en_US/config.workflow:VerifyWarranty?country-code=897&";
-      $info["url"] = $info["supplier_url"]."serial-number=".$compSerial."&machine-type=".$otherserial."&btnSubmit";
+      $info["supplier_url"] = "https://www.lenovo.com/us/en/warranty/";
+      $info["url"]          = $supplierUrl . $compSerial."?machineType=&btnSubmit";
       return $info;
    }
-   
-   
+
+   /**
+    * @see PluginManufacturersimportsManufacturer::getBuyDate()
+    */
    function getBuyDate($contents) {
-      $buy_date = NULL;
 
-      //cut html 
-      $contents = substr($contents, 0, strpos($contents, "remindMeWrap"));
+      $contents = json_decode($contents, true);
 
-      //find dates in html content
-      preg_match_all("/([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{1,4})/s", $contents, $dates);
-      
-      if (isset($dates[0])) {
-          // get first of found dates
-         $buy_date_raw = array_shift($dates[0]);
+      if (isset($contents['startDate'])) {
+         $myDate = trim($contents['startDate']);
+         list($month, $day, $year) = explode('/', $myDate);
+         $myDate = date("Y-m-d", mktime(0, 0, 0, $month, $day, $year));
 
-         //extract date parts
-         preg_match("/([0-9]{1,2})\/([0-9]{1,2})\/([0-9]{1,4})/", $buy_date_raw, $buy_date_parts);
-         if (count($buy_date_parts) === 4) {
+         return PluginManufacturersimportsPostImport::checkDate($myDate);
+      }
+   }
 
-            // forge final date
-            $year  = $buy_date_parts[3];
-            $month = $buy_date_parts[1];
-            $day   = $buy_date_parts[2];
-            $buy_date = "2".str_pad($year, 3, "0", STR_PAD_LEFT)."-".
-                        str_pad($month, 2, "0", STR_PAD_LEFT)."-".
-                        str_pad($day, 2, "0", STR_PAD_LEFT).
-                        " 00:00:00";
-         }
+   /**
+    * @see PluginManufacturersimportsManufacturer::getStartDate()
+    */
+   function getStartDate($contents) {
+
+      return self::getBuyDate($contents);
+   }
+
+   /**
+    * @see PluginManufacturersimportsManufacturer::getExpirationDate()
+    */
+   function getExpirationDate($contents) {
+      $contents = json_decode($contents, true);
+
+      if(isset($contents['upgrade_expirationDate']) && !empty($contents['upgrade_expirationDate'])) {
+         $myDate = trim($contents['upgrade_expirationDate']);
+      } else if (isset($contents['expirationDate'])) {
+         $myDate = trim($contents['expirationDate']);
       }
 
-      return PluginManufacturersimportsPostImport::checkDate($buy_date);
+      if(isset($myDate)) {
+         list($month, $day, $year) = explode('/', $myDate);
+         $myDate = date("Y-m-d", mktime(0, 0, 0, $month, $day, $year));
+
+         return PluginManufacturersimportsPostImport::checkDate($myDate);
+      }
    }
 
-   function getExpirationDate($contents) {
-      $expiration_date = NULL;
+   /**
+    * @see PluginManufacturersimportsManufacturer::getWarrantyInfo()
+    */
+   function getWarrantyInfo($contents) {
+      $contents = json_decode($contents, true);
 
-      //cut html 
-      $contents = substr($contents, 0, strpos($contents, "remindMeWrap"));
-
-      //find dates in html content
-      preg_match_all("/([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{1,4})/s", $contents, $dates);
-      if (isset($dates[1])) {
-         // get last of found dates
-         $expiration_date_raw = array_pop($dates[0]);
-
-         //extract date parts
-         preg_match("/([0-9]{1,2})\/([0-9]{1,2})\/([0-9]{1,4})/", $expiration_date_raw, $expiration_date_parts);
-         if (count($expiration_date_parts) === 4) {
-
-            // forge final date
-            $year  = $expiration_date_parts[3];
-            $month = $expiration_date_parts[1];
-            $day   = $expiration_date_parts[2];
-            $expiration_date = "2".str_pad($year, 3, "0", STR_PAD_LEFT)."-".
-                               str_pad($month, 2, "0", STR_PAD_LEFT)."-".
-                               str_pad($day, 2, "0", STR_PAD_LEFT).
-                               " 00:00:00";
-         }
-      } 
-
-      return PluginManufacturersimportsPostImport::checkDate($expiration_date);
+      $warranty_info = false;
+      if (isset($contents['upgrade_sdfDesc']) && $contents['upgrade_sdfDesc'] != 'null') {
+         $warranty_info = $contents['upgrade_sdfDesc'];
+      } else if (isset($contents['description'])) {
+         $warranty_info = $contents['description'];
+      } else if (isset($contents['errorMsg'])) {
+         $warranty_info = $contents['errorMsg'];
+      }
+      if (strlen($warranty_info) > 255) {
+         $warranty_info = substr($warranty_info, 0, 254);
+      }
+      return $warranty_info;
    }
 }
-
-?>

@@ -9,7 +9,7 @@
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of domains.
 
  domains is free software; you can redistribute it and/or modify
@@ -27,9 +27,7 @@
  --------------------------------------------------------------------------
  */
 
-include ('../../../inc/includes.php');
+include('../../../inc/includes.php');
 
 $dropdown = new PluginDomainsDomainType();
-include (GLPI_ROOT . "/front/dropdown.common.php");
-
-?>
+include(GLPI_ROOT . "/front/dropdown.common.php");

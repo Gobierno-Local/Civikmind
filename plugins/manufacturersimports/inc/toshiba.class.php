@@ -5,11 +5,11 @@
  Manufacturersimports plugin for GLPI
  Copyright (C) 2003-2016 by the Manufacturersimports Development Team.
 
- https://github.com/InfotelGLPI
+ https://github.com/InfotelGLPI/manufacturersimports
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of Manufacturersimports.
 
  Manufacturersimports is free software; you can redistribute it and/or modify
@@ -31,49 +31,79 @@ if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
 }
 
+/**
+ * Class PluginManufacturersimportsToshiba
+ */
 class PluginManufacturersimportsToshiba extends PluginManufacturersimportsManufacturer {
 
-   function showDocTitle($output_type,$header_num) {
-      return Search::showHeaderItem($output_type,__('File'),$header_num);
+   /**
+    * @see PluginManufacturersimportsManufacturer::showDocTitle()
+    */
+   function showDocTitle($output_type, $header_num) {
+      return Search::showHeaderItem($output_type, __('File'), $header_num);
    }
 
    function getSearchField() {
       return ">Days<";
    }
 
-   function getSupplierInfo($compSerial=null,$otherSerial=null) {
+   /**
+    * @see PluginManufacturersimportsManufacturer::getSupplierInfo()
+    */
+   function getSupplierInfo($compSerial = null, $otherSerial = null, $key = null, $apisecret = null,
+                            $supplierUrl = null) {
       $info["name"]         = PluginManufacturersimportsConfig::TOSHIBA;
       $info["supplier_url"] = "http://aps2.toshiba-tro.de/unit-details-php/unitdetails.aspx?";
-      $info["url"]          = $info["supplier_url"].
+      $info["url"]          = $supplierUrl.
                               "SerialNumber=".$compSerial.
                               "&openbox=warranty1";
       return $info;
    }
 
+   /**
+    * @see PluginManufacturersimportsManufacturer::getBuyDate()
+    */
    function getBuyDate($contents) {
-      $days           = substr($contents,118,3);
+      $days           = substr($contents, 118, 3);
       $days           = trim($days);
-      $maDate         = "0000-00-00";
-      $ExpirationDate = self::getExpirationDate($contents);
-      //TODO translate variables in english
+      $myDate         = "0000-00-00";
+      $ExpirationDate = self::getFirstExpirationDate($contents);
       if ($ExpirationDate != "0000-00-00") {
-         list($annee, $mois, $jour) = explode('-', $ExpirationDate);
+         list($year, $month, $day) = explode('-', $ExpirationDate);
          //Drop days of warranty
-         $maDate = date("Y-m-d",
-                        mktime(0, 0, 0, $mois, $jour-$days,  $annee));
+         $myDate = date("Y-m-d",
+                        mktime(0, 0, 0, $month, $day-$days, $year));
       }
-      return $maDate;
+      return $myDate;
    }
 
-   function getExpirationDate($contents) {
-      //TODO translate variables in english
+   /**
+    * @see PluginManufacturersimportsManufacturer::getStartDate()
+    */
+   function getStartDate($contents) {
+
+      return self::getBuyDate($contents);
+   }
+
+   function getFirstExpirationDate($contents) {
       $field     = "Expiration Date";
       $searchfin = stristr($contents, $field);
-      $maDateFin = substr($searchfin,138,10);
-      $maDateFin = trim($maDateFin);
-      $maDateFin = PluginManufacturersimportsPostImport::checkDate($maDateFin);
-      return $maDateFin;
+      $myEndDate = substr($searchfin, 138, 10);
+      $myEndDate = trim($myEndDate);
+      $myEndDate = PluginManufacturersimportsPostImport::checkDate($myEndDate);
+      return $myEndDate;
+   }
+
+   /**
+    * @see PluginManufacturersimportsManufacturer::getExpirationDate()
+    */
+   function getExpirationDate($contents) {
+      $field     = "Expiration Date";
+      $pos       = strripos($contents, $field);
+      $searchfin = substr($contents, $pos);
+      $myEndDate = substr($searchfin, 143, 10);
+      $myEndDate = trim($myEndDate);
+      $myEndDate = PluginManufacturersimportsPostImport::checkDate($myEndDate);
+      return $myEndDate;
    }
 }
-
-?>

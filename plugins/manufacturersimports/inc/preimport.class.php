@@ -5,11 +5,11 @@
  Manufacturersimports plugin for GLPI
  Copyright (C) 2003-2016 by the Manufacturersimports Development Team.
 
- https://github.com/InfotelGLPI
+ https://github.com/InfotelGLPI/manufacturersimports
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of Manufacturersimports.
 
  Manufacturersimports is free software; you can redistribute it and/or modify
@@ -30,26 +30,41 @@ if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
 }
 
+/**
+ * Class PluginManufacturersimportsPreImport
+ */
 class PluginManufacturersimportsPreImport extends CommonDBTM {
 
    static $rightname = "plugin_manufacturersimports";
 
-   const IMPORTED        = 2;
-   const NOT_IMPORTED    = 1;
+   const IMPORTED     = 2;
+   const NOT_IMPORTED = 1;
 
-   static function getTypeName($nb=0) {
+   /**
+    * Return the localized name of the current Type
+    * Should be overloaded in each new class
+    *
+    * @return string
+    **/
+   static function getTypeName($nb = 0) {
       return _n('Suppliers import', 'Suppliers imports', $nb, 'manufacturersimports');
    }
 
-   static function showAllItems($myname,$value_type=0,$value=0,$entity_restrict=-1,$types='') {
-      global $CFG_GLPI;
+   /**
+    * @param        $myname
+    * @param int    $value_type
+    * @param int    $value
+    * @param int    $entity_restrict
+    * @param string $types
+    */
+   static function showAllItems($myname, $value_type = 0, $value = 0, $entity_restrict = -1, $types = '') {
 
       if (!is_array($types)) {
          $types = PluginManufacturersimportsConfig::getTypes();
       }
 
       $rand    = mt_rand();
-      $options = array();
+      $options = [];
 
       foreach ($types as $type) {
          $item           = new $type();
@@ -58,173 +73,271 @@ class PluginManufacturersimportsPreImport extends CommonDBTM {
       asort($options);
       if (count($options)) {
          echo "<select name='$myname' id='item_type$rand'>\n";
-         echo "<option value='0'>".Dropdown::EMPTY_VALUE."</option>\n";
+         echo "<option value='0'>" . Dropdown::EMPTY_VALUE . "</option>\n";
          foreach ($options as $key => $val) {
-            echo "<option value='".$key."' ".($key==$value?"selected": "").">".$val."</option>\n";
+            echo "<option value='" . $key . "' " . ($key == $value ? "selected" : "") . ">" . $val . "</option>\n";
          }
          echo "</select>&nbsp;";
       }
    }
 
    /**
-   * Fonction to use the supplier url
-   *
-   * @param $suppliername the suppliername
-   * @param $supplierUrl the supplierUrl (in plugin config)
-   * @param $compSerial the serial of the device
-   * @param $otherSerial the otherSerial (model) of the device
-   * @return $url of the supplier
-   *
-   */
-   static function selectSupplier ($suppliername,$compSerial,$otherserial=null,$supplierkey=null) {
-
+    * Fonction to use the supplier url
+    *
+    * @param $suppliername the suppliername
+    * @param $supplierUrl the supplierUrl (in plugin config)
+    * @param $compSerial the serial of the device
+    * @param $otherSerial the otherSerial (model) of the device
+    * @param null $supplierkey the supplierkey
+    * @param null $supplierSecret the supplierSecret
+    *
+    * @return $url of the supplier
+    *
+    */
+   static function selectSupplier($suppliername, $supplierUrl, $compSerial, $otherserial = null,
+                                  $supplierkey = null, $supplierSecret = null) {
       $url = "";
       if (!empty($suppliername)) {
-         $supplierclass = "PluginManufacturersimports".$suppliername;
+         $supplierclass = "PluginManufacturersimports" . $suppliername;
          $supplier      = new $supplierclass();
-         $infos         = $supplier->getSupplierInfo($compSerial,$otherserial,$supplierkey);
+         $infos         = $supplier->getSupplierInfo($compSerial, $otherserial, $supplierkey,
+                                                     $supplierSecret, $supplierUrl);
          $url           = $infos['url'];
       }
       return $url;
    }
 
-   static function getSupplierPost ($suppliername,$compSerial,$otherserial=null) {
+   /**
+    * Fonction to use the supplier url
+    *
+    * @param $suppliername the suppliername
+    * @param $supplierUrl the supplierUrl (in plugin config)
+    * @param $compSerial the serial of the device
+    * @param $otherSerial the otherSerial (model) of the device
+    * @param null $supplierkey the supplierkey
+    * @param null $supplierSecret the supplierSecret
+    *
+    * @return $url of the supplier
+    *
+    */
+   static function selectSupplierWarranty($suppliername, $supplierUrl, $compSerial, $otherserial = null,
+                                  $supplierkey = null, $supplierSecret = null) {
+      $url_warranty = "";
+      if (!empty($suppliername)) {
+         $supplierclass = "PluginManufacturersimports" . $suppliername;
+         $supplier      = new $supplierclass();
+         $infos         = $supplier->getSupplierInfo($compSerial, $otherserial, $supplierkey,
+                                                     $supplierSecret, $supplierUrl);
+         $url_warranty           = $infos['url_warranty'];
+      }
+      return $url_warranty;
+   }
+
+   /**
+    * @param      $suppliername
+    * @param      $supplierUrl
+    * @param      $compSerial
+    * @param null $otherserial
+    * @param null $supplierkey
+    *
+    * @return string
+    */
+   static function getMoreInfosSupplier($suppliername, $supplierUrl, $compSerial, $otherserial = null, $supplierkey = null) {
+
+      $url = "";
+      if (!empty($suppliername)) {
+         $supplierclass = "PluginManufacturersimports" . $suppliername;
+         $supplier      = new $supplierclass();
+         if (method_exists($supplier, "getSupplierMoreInfo")) {
+            $url = $supplier->getSupplierMoreInfo($compSerial, $otherserial, $supplierkey, $supplierUrl);
+         }
+      }
+      return $url;
+   }
+
+   /**
+    * @param      $suppliername
+    * @param      $supplierUrl
+    * @param      $compSerial
+    * @param null $otherserial
+    * @param null $supplierkey
+    *
+    * @return string
+    */
+   static function getJSSupplier($suppliername, $supplierUrl, $compSerial, $otherserial = null, $supplierkey = null) {
+
+      $js = "";
+      if (!empty($suppliername)) {
+         $supplierclass = "PluginManufacturersimports" . $suppliername;
+         $supplier      = new $supplierclass();
+         if (method_exists($supplier, "getJSSupplier")) {
+            $js = $supplier->getJSSupplier($compSerial, $otherserial, $supplierkey, $supplierUrl);
+         }
+      }
+      return $js;
+   }
+
+   /**
+    * @param      $suppliername
+    * @param      $compSerial
+    * @param null $otherserial
+    *
+    * @return string
+    */
+   static function getSupplierPost($suppliername, $compSerial, $otherserial = null,
+                                   $supplierkey = null, $supplierSecret = null) {
 
       $post = "";
       if (!empty($suppliername)) {
-         $supplierclass = "PluginManufacturersimports".$suppliername;
+         $supplierclass = "PluginManufacturersimports" . $suppliername;
          $supplier      = new $supplierclass();
-         $infos         = $supplier->getSupplierInfo($compSerial,$otherserial);
-         if(isset($infos['post'])){
+         $infos         = $supplier->getSupplierInfo($compSerial, $otherserial, $supplierkey, $supplierSecret);
+         if (isset($infos['post'])) {
             $post = $infos['post'];
          }
       }
       return $post;
    }
 
-   static function showImport($row_num, $item_num, $line, $output_type, 
+   /**
+    * @param $row_num
+    * @param $item_num
+    * @param $line
+    * @param $output_type
+    * @param $configID
+    * @param $status
+    * @param $imported
+    */
+   static function showImport($row_num, $item_num, $line, $output_type,
                               $configID, $status, $imported) {
-      global $DB,$CFG_GLPI;
-      
+
       $infocom = new Infocom();
       $canedit = Session::haveRight(static::$rightname, UPDATE) && $infocom->canUpdate();
-      $config = new PluginManufacturersimportsConfig();
+      $config  = new PluginManufacturersimportsConfig();
       $config->getFromDB($configID);
 
-      $suppliername    = $config->fields["name"];
-      $supplierUrl     = $config->fields["supplier_url"];
-      $supplierId      = $config->fields["suppliers_id"];
-      $supplierWarranty= $config->fields["warranty_duration"];
-      $supplierkey     = $config->fields["supplier_key"];
-      $supplierclass = "PluginManufacturersimports".$suppliername;
-      $supplier      = new $supplierclass();
+      $suppliername      = $config->fields["name"];
+      $supplierUrl       = $config->fields["supplier_url"];
+      $supplierId        = $config->fields["suppliers_id"];
+      $supplierWarranty  = $config->fields["warranty_duration"];
+      $supplierkey       = $config->fields["supplier_key"];
+      $supplierkeysecret = $config->fields["supplier_secret"];
+      $supplierclass     = "PluginManufacturersimports" . $suppliername;
+      $supplier          = new $supplierclass();
 
       $row_num++;
 
       if ($suppliername) {
 
          $model       = new PluginManufacturersimportsModel();
-         $otherSerial = $model->checkIfModelNeeds($line["itemtype"],$line["id"]);
+         $otherSerial = $model->checkIfModelNeeds($line["itemtype"], $line["id"]);
 
-         echo Search::showNewLine($output_type,$row_num%2);
+         echo Search::showNewLine($output_type, $row_num % 2);
          $ic           = new Infocom;
          $output_check = "";
-         if ($canedit 
-             && $output_type== Search::HTML_OUTPUT) {
+         if ($canedit
+             && $output_type == Search::HTML_OUTPUT) {
             $sel = "";
-            if (isset($_GET["select"]) 
-               && $_GET["select"] == "all") {
+            if (isset($_GET["select"])
+                && $_GET["select"] == "all") {
                $sel = "checked";
             }
-            $output_check=$supplier->showCheckbox($line["id"], $sel, $otherSerial);
+            $output_check = $supplier->showCheckbox($line["id"], $sel, $otherSerial);
          }
 
-         echo Search::showItem($output_type,$output_check,$item_num,$row_num);
+         echo Search::showItem($output_type, $output_check, $item_num, $row_num);
          $link = Toolbox::getItemTypeFormURL($line["itemtype"]);
          $ID   = "";
          if ($_SESSION["glpiis_ids_visible"]
-            ||empty($line["name"])) {
-            $ID.= " (".$line["id"].")";
+             || empty($line["name"])) {
+            $ID .= " (" . $line["id"] . ")";
          }
-         $output_link = "<a href='".$link."?id=".$line["id"]."'>".
-                        $line["name"].$ID."</a><br>".$line["model_name"];
-         echo Search::showItem($output_type,$output_link,$item_num,$row_num);
+         $output_link = "<a href='" . $link . "?id=" . $line["id"] . "'>" .
+                        $line["name"] . $ID . "</a><br>" . $line["model_name"];
+         echo Search::showItem($output_type, $output_link, $item_num, $row_num);
          if (Session::isMultiEntitiesMode()) {
             echo Search::showItem($output_type,
                                   Dropdown::getDropdownName("glpi_entities",
                                                             $line['entities_id']),
-                                                            $item_num,
-                                                            $row_num);
+                                  $item_num,
+                                  $row_num);
          }
 
-         $url=self::selectSupplier($suppliername,$line["serial"],$otherSerial,$supplierkey);
+         $url = self::selectSupplier($suppliername, $supplierUrl, $line["serial"], $otherSerial,
+                                     $supplierkey, $supplierkeysecret);
          //serial
-         echo Search::showItem($output_type,$line["serial"],$item_num,$row_num);
+         echo Search::showItem($output_type, $line["serial"], $item_num, $row_num);
          //otherserial
-         echo $supplier->showItem($output_type,$otherSerial,$item_num,$row_num);
+         echo Search::showItem($output_type, $otherSerial, $item_num, $row_num);
 
          //display infocoms
-         $output_ic="";
-         if ($ic->getfromDBforDevice($line["itemtype"],$line["id"])) {
-            $output_ic.=_n('Supplier' , 'Suppliers' , 1).":".
-               Dropdown::getDropdownName("glpi_suppliers",$ic->fields["suppliers_id"])."<br>";
-            $output_ic.=__('Date of purchase')." : ".Html::convdate($ic->fields["buy_date"])."<br>";
-            $output_ic.=__('Start date of warranty').":".Html::convdate($ic->fields["warranty_date"])."<br>";
-            if ($ic->fields["warranty_duration"]==-1) {
-               $output_ic.=__('Warranty duration').":".__('Lifelong')."<br>";
+         $output_ic = "";
+         if ($ic->getfromDBforDevice($line["itemtype"], $line["id"])) {
+            $output_ic .= _n('Supplier', 'Suppliers', 1) . ":" .
+                          Dropdown::getDropdownName("glpi_suppliers", $ic->fields["suppliers_id"]) . "<br>";
+            $output_ic .= __('Date of purchase') . " : " . Html::convdate($ic->fields["buy_date"]) . "<br>";
+            $output_ic .= __('Start date of warranty') . ":" . Html::convdate($ic->fields["warranty_date"]) . "<br>";
+            if ($ic->fields["warranty_duration"] == -1) {
+               $output_ic .= __('Warranty duration') . ":" . __('Lifelong') . "<br>";
             } else {
-               $output_ic.=__('Warranty duration').":".$ic->fields["warranty_duration"]." ".__('month')."<br>";
+               $output_ic .= __('Warranty duration') . ":" . $ic->fields["warranty_duration"] . " " . __('month') . "<br>";
             }
-            $tmpdat = Infocom::getWarrantyExpir($ic->fields["warranty_date"],$ic->fields["warranty_duration"]);
-            $output_ic.=sprintf(__('Valid to %s'), $tmpdat);
+            $tmpdat    = Infocom::getWarrantyExpir($ic->fields["warranty_date"], $ic->fields["warranty_duration"]);
+            $output_ic .= sprintf(__('Valid to %s'), $tmpdat);
          } else {
-            $output_ic.="";
+            $output_ic .= "";
          }
-         echo Search::showItem($output_type,$output_ic,$item_num,$row_num);
-         
+         echo Search::showItem($output_type, $output_ic, $item_num, $row_num);
+
          if ($imported != self::IMPORTED) {
             //display enterprise and warranty selection
             echo "<td>";
             if (Session::isMultiEntitiesMode() && $supplierId) {
-               $item=new Supplier();
+               $item = new Supplier();
                $item->getFromDB($supplierId);
-               if ($item->fields["is_recursive"] 
-                  || $item->fields["entities_id"] == $line['entities_id'])
-                  Dropdown::show('Supplier', array('name'     => "to_suppliers_id".$line["id"],
+               if ($item->fields["is_recursive"]
+                   || $item->fields["entities_id"] == $line['entities_id']) {
+                  Dropdown::show('Supplier', ['name'     => "to_suppliers_id" . $line["id"],
                                                    'value'    => $supplierId,
                                                    'comments' => 0,
-                                                   'entity'   => $line['entities_id']));
-               else {
+                                                   'entity'   => $line['entities_id']]);
+               } else {
                   echo "<span class='plugin_manufacturersimports_import_KO'>";
-                  echo __('The choosen supplier is not recursive', 'manufacturersimports')."</span>";
-                  echo "<input type='hidden' name='to_suppliers_id".$line["id"]."' value='-1'>";
+                  echo __('The choosen supplier is not recursive', 'manufacturersimports') . "</span>";
+                  echo "<input type='hidden' name='to_suppliers_id" . $line["id"] . "' value='-1'>";
                }
             } else {
-               Dropdown::show('Supplier', array('name'     => "to_suppliers_id".$line["id"],
+               Dropdown::show('Supplier', ['name'     => "to_suppliers_id" . $line["id"],
                                                 'value'    => $supplierId,
                                                 'comments' => 0,
-                                                'entity'   => $line['entities_id']));
+                                                'entity'   => $line['entities_id']]);
             }
             echo "</td>";
-            
-            $supplier->showWarrantyItem($line["id"],$supplierWarranty);
-            
+
+            $supplier->showWarrantyItem($line["id"], $supplierWarranty);
+
          } else {
             //display enterprise and warranty selection
-            echo "<td>".Dropdown::getDropdownName("glpi_suppliers",
-                                                  $ic->fields["suppliers_id"])."</td>";
+            echo "<td>" . Dropdown::getDropdownName("glpi_suppliers",
+                                                    $ic->fields["suppliers_id"]) . "</td>";
             if ($ic->fields["warranty_duration"] == -1) {
-               echo "<td>".__('Lifelong')."</td>";
+               echo "<td>" . __('Lifelong') . "</td>";
             } else {
-               echo "<td>".$ic->fields["warranty_duration"]."</td>";
+               echo "<td>" . $ic->fields["warranty_duration"] . "</td>";
             }
-            
+
          }
-         
+
          //supplier url
          //url to supplier
-         $output_url="<a href='".$url."' target='_blank'>".
-                     __('Manufacturer information', 'manufacturersimports')."</a>";
+         $output_url = "<a href='" . $url . "' target='_blank'>" .
+                       __('Manufacturer information', 'manufacturersimports') . "</a>";
+         if ($suppliername == PluginManufacturersimportsConfig::HP) {
+            $output_url = "";
+//            $output_url = "<a href='" . Toolbox::getItemTypeFormURL("PluginManufacturersimportsHP") .
+//                          "?sn=".$line["serial"]."&manufacturers_id=$configID' target='_blank'>" .
+//                         __('Manufacturer information', 'manufacturersimports') . "</a>";
+         }
          echo Search::showItem($output_type, $output_url, $item_num, $row_num);
 
          //status
@@ -232,98 +345,102 @@ class PluginManufacturersimportsPreImport extends CommonDBTM {
             if ($status != 2) {
                $output_doc = __('Not yet imported', 'manufacturersimports');
             } else {
-               $output_doc="<span class='plugin_manufacturersimports_import_KO'>".
-                           __('Problem during the importation', 'manufacturersimports');
+               $output_doc = "<span class='plugin_manufacturersimports_import_KO'>" .
+                             __('Problem during the importation', 'manufacturersimports');
                if (!empty($data["date_import"])) {
-                  $output_doc.=" (".Html::convdate($data["date_import"]).")";
+                  $output_doc .= " (" . Html::convdate($data["date_import"]) . ")";
                }
-               $output_doc.="</span>";
+               $output_doc .= "</span>";
             }
          } else {
-             $output_doc="<span class='plugin_manufacturersimports_import_OK'>".
-                        __('Already imported', 'manufacturersimports');
+            $output_doc = "<span class='plugin_manufacturersimports_import_OK'>" .
+                          __('Already imported', 'manufacturersimports');
             if (!empty($line["date_import"])) {
-               $output_doc.=" (".Html::convdate($line["date_import"]).")";
+               $output_doc .= " (" . Html::convdate($line["date_import"]) . ")";
             }
-            $output_doc.="</span>";
+            $output_doc .= "</span>";
          }
-         echo Search::showItem($output_type,$output_doc,$item_num,$row_num);
+         echo Search::showItem($output_type, $output_doc, $item_num, $row_num);
          //no associated doc
-         echo $supplier->showDocItem($output_type,$item_num,$row_num,$line["documents_id"]);
+         echo $supplier->showDocItem($output_type, $item_num, $row_num, $line["documents_id"]);
 
       }
    }
-   
+
    /**
-   * Prints search form
-   *
-   * @param $manufacturer the supplier choice
-   * @param $type the device type
-   * @return nothing (print out a table)
-   *
-   */
-   static function searchForm ($params) {
-      global $DB,$CFG_GLPI;
-      
+    * Prints search form
+    *
+    * @param $manufacturer the supplier choice
+    * @param $type the device type
+    *
+    * @return nothing (print out a table)
+    *
+    */
+   static function searchForm($params) {
+      global $DB, $CFG_GLPI;
+
       // Default values of parameters
       $p['itemtype']         = '';
       $p['manufacturers_id'] = '';
       $p['imported']         = '';
-      
+
       foreach ($params as $key => $val) {
-            $p[$key]=$val;
+         $p[$key] = $val;
       }
 
-      echo "<form name='form' method='post' action='".$CFG_GLPI["root_doc"]."/plugins/manufacturersimports/front/import.php'>";
+      $dbu = new DbUtils();
+
+      echo "<form name='form' method='post' action='" . $CFG_GLPI["root_doc"] . "/plugins/manufacturersimports/front/import.php'>";
       echo "<div align='center'><table class='tab_cadre_fixe' cellpadding='5'>";
-      echo "<tr><th colspan='4'>".__('Choose inventory type and manufacturer', 'manufacturersimports')."</th></tr>";
+      echo "<tr><th colspan='4'>" . __('Choose inventory type and manufacturer', 'manufacturersimports') . "</th></tr>";
       echo "<tr class='tab_bg_2'>";
       echo "<td class='center'>";
 
       //Manufacturer choice
-      $query   = "SELECT `glpi_plugin_manufacturersimports_configs`.*
+      $query = "SELECT `glpi_plugin_manufacturersimports_configs`.*
                  FROM `glpi_plugin_manufacturersimports_configs` ";
-      $query  .=" LEFT JOIN `glpi_entities` ON (`glpi_entities`.`id` = `glpi_plugin_manufacturersimports_configs`.`entities_id`)"
-               ." WHERE `glpi_plugin_manufacturersimports_configs`.`manufacturers_id` != '0'";
-      $query  .= "".getEntitiesRestrictRequest(" AND", "glpi_plugin_manufacturersimports_configs", '', '', true);
-      $query  .= " ORDER BY `glpi_plugin_manufacturersimports_configs`.`entities_id`, 
+      $query .= " LEFT JOIN `glpi_entities` ON (`glpi_entities`.`id` = `glpi_plugin_manufacturersimports_configs`.`entities_id`)"
+                . " WHERE `glpi_plugin_manufacturersimports_configs`.`manufacturers_id` != '0'";
+      $query .= "" . $dbu->getEntitiesRestrictRequest(" AND", "glpi_plugin_manufacturersimports_configs", '', '', true);
+      $query .= " ORDER BY `glpi_plugin_manufacturersimports_configs`.`entities_id`, 
                             `glpi_plugin_manufacturersimports_configs`.`name`";
-                            
+
       $iterator = $DB->request($query);
       $number   = $iterator->numrows();
 
       if ($number > 0) {
-         self::showAllItems("itemtype", 0, $p['itemtype'], -1, 
+         self::showAllItems("itemtype", 0, $p['itemtype'], -1,
                             PluginManufacturersimportsConfig::getTypes());
          echo "</td><td>";
 
          echo "<select name=\"manufacturers_id\">";
-         echo "<option value=\"0\">".Dropdown::EMPTY_VALUE."</option>";
+         echo "<option value=\"0\">" . Dropdown::EMPTY_VALUE . "</option>";
 
          foreach ($iterator as $data) {
-               echo "<option value='".$data["id"]."' ".($p['manufacturers_id']=="".$data["id"].""?" selected ":"").">";
-               if (Session::isMultiEntitiesMode())
-                  echo Dropdown::getDropdownName("glpi_entities",$data["entities_id"])." > ";
-               echo $data["name"];
-               if (empty($data["name"]) || $_SESSION["glpiis_ids_visible"]) {
-                  echo " (";
-                  echo $data["id"].")";
-               }
-               echo "</option>";
+            echo "<option value='" . $data["id"] . "' " . ($p['manufacturers_id'] == "" . $data["id"] . "" ? " selected " : "") . ">";
+            if (Session::isMultiEntitiesMode()) {
+               echo Dropdown::getDropdownName("glpi_entities", $data["entities_id"]) . " > ";
+            }
+            echo $data["name"];
+            if (empty($data["name"]) || $_SESSION["glpiis_ids_visible"]) {
+               echo " (";
+               echo $data["id"] . ")";
+            }
+            echo "</option>";
          }
          echo "</select>";
          echo "</td><td>";
          echo "<select name=\"imported\">";
-         echo "<option value='".self::NOT_IMPORTED."' ".($p['imported']==self::NOT_IMPORTED?" selected ":"").">";
-         echo __('Devices not imported', 'manufacturersimports')."</option>";
-         echo "<option value='".self::IMPORTED."' ".($p['imported']==self::IMPORTED?" selected ":"").">";
-         echo __('Devices already imported', 'manufacturersimports')."</option>";
+         echo "<option value='" . self::NOT_IMPORTED . "' " . ($p['imported'] == self::NOT_IMPORTED ? " selected " : "") . ">";
+         echo __('Devices not imported', 'manufacturersimports') . "</option>";
+         echo "<option value='" . self::IMPORTED . "' " . ($p['imported'] == self::IMPORTED ? " selected " : "") . ">";
+         echo __('Devices already imported', 'manufacturersimports') . "</option>";
          echo "</select>";
 
       } else {
          if (Session::haveRight('config', UPDATE)) {
             //Please configure a supplier
-            echo "<a href='".$CFG_GLPI["root_doc"]."/plugins/manufacturersimports/front/config.form.php'>";
+            echo "<a href='" . $CFG_GLPI["root_doc"] . "/plugins/manufacturersimports/front/config.form.php'>";
             echo __('No manufacturer available. Please configure at least one manufacturer', 'manufacturersimports');
             echo "</a>";
          } else {
@@ -333,7 +450,7 @@ class PluginManufacturersimportsPreImport extends CommonDBTM {
 
       echo "</td><td>";
       if ($number > 0) {
-         echo "<input type=\"submit\" name=\"typechoice\" class=\"submit\" value='"._sx('button', 'Post')."' >";
+         echo "<input type=\"submit\" name=\"typechoice\" class=\"submit\" value='" . _sx('button', 'Post') . "' >";
       }
       echo "</td>";
       echo "</tr>";
@@ -343,81 +460,83 @@ class PluginManufacturersimportsPreImport extends CommonDBTM {
    }
 
    /**
-   * Prints display Search Header
-   *
-   * @param $fixed if fixed cells
-   * @param $output_type the output_type
-   * @return nothing (print out a table)
-   *
-   */
-   static function displaySearchHeader($output_type,$fixed=0) {
+    * Prints display Search Header
+    *
+    * @param $fixed if fixed cells
+    * @param $output_type the output_type
+    *
+    * @return nothing (print out a table)
+    *
+    */
+   static function displaySearchHeader($output_type, $fixed = 0) {
       $out = "";
       switch ($output_type) {
          default :
             if ($fixed) {
-               $out="<div class='center'><table border='0' class='tab_cadre_fixehov'>\n";
+               $out = "<div class='center'><table border='0' class='tab_cadre_fixehov'>\n";
             } else {
-               $out="<div class='center'><table border='0' class='tab_cadrehov'>\n";
+               $out = "<div class='center'><table border='0' class='tab_cadrehov'>\n";
             }
             break;
       }
       return $out;
    }
-   
+
    /**
-   * Prints display pre import
-   *
-   * @param $type the type of device
-   * @param $configID the ID of the supplier config
-   * @param $start for pager display
-   * @param $complete to see all device (already imported and not)
-   * @return nothing (print out a table)
-   *
-   */
-   static function seePreImport ($params) {
-      global $DB,$CFG_GLPI;
-      
+    * Prints display pre import
+    *
+    * @param $type the type of device
+    * @param $configID the ID of the supplier config
+    * @param $start for pager display
+    * @param $complete to see all device (already imported and not)
+    *
+    * @return nothing (print out a table)
+    *
+    */
+   static function seePreImport($params) {
+      global $DB, $CFG_GLPI;
+
       // Default values of parameters
-      $p['link']              = array();
-      $p['field']             = array();
-      $p['contains']          = array();
-      $p['searchtype']        = array();
-      $p['sort']              = '1';
-      $p['order']             = 'ASC';
-      $p['start']             = 0;
-      $p['export_all']        = 0;
-      $p['link2']             = '';
-      $p['contains2']         = '';
-      $p['field2']            = '';
-      $p['itemtype2']         = '';
-      $p['searchtype2']       = '';
-      $p['itemtype']          = '';
-      $p['manufacturers_id']  = '';
-      $p['imported']          = '';
-      
+      $p['link']             = [];
+      $p['field']            = [];
+      $p['contains']         = [];
+      $p['searchtype']       = [];
+      $p['sort']             = '1';
+      $p['order']            = 'ASC';
+      $p['start']            = 0;
+      $p['export_all']       = 0;
+      $p['link2']            = '';
+      $p['contains2']        = '';
+      $p['field2']           = '';
+      $p['itemtype2']        = '';
+      $p['searchtype2']      = '';
+      $p['itemtype']         = '';
+      $p['manufacturers_id'] = '';
+      $p['imported']         = '';
+
       foreach ($params as $key => $val) {
-            $p[$key]=$val;
+         $p[$key] = $val;
       }
-      
-      $globallinkto = self::getArrayUrlLink("field",$p['field']).
-                      self::getArrayUrlLink("link",$p['link']).
-                      self::getArrayUrlLink("contains",$p['contains']).
-                      self::getArrayUrlLink("searchtype",$p['searchtype']).
-                      self::getArrayUrlLink("field2",$p['field2']).
-                      self::getArrayUrlLink("contains2",$p['contains2']).
-                      self::getArrayUrlLink("searchtype2",$p['searchtype2']).
-                      self::getArrayUrlLink("itemtype2",$p['itemtype2']).
-                      self::getArrayUrlLink("link2",$p['link2']);
-            
+
+      $globallinkto = self::getArrayUrlLink("field", $p['field']) .
+                      self::getArrayUrlLink("link", $p['link']) .
+                      self::getArrayUrlLink("contains", $p['contains']) .
+                      self::getArrayUrlLink("searchtype", $p['searchtype']) .
+                      self::getArrayUrlLink("field2", $p['field2']) .
+                      self::getArrayUrlLink("contains2", $p['contains2']) .
+                      self::getArrayUrlLink("searchtype2", $p['searchtype2']) .
+                      self::getArrayUrlLink("itemtype2", $p['itemtype2']) .
+                      self::getArrayUrlLink("link2", $p['link2']);
+
       $modeltable = "";
-      $target     = $CFG_GLPI["root_doc"]."/plugins/manufacturersimports/front/import.php";
+      $target     = $CFG_GLPI["root_doc"] . "/plugins/manufacturersimports/front/import.php";
 
       if ($p['itemtype'] && $p['manufacturers_id']) {
 
-         $config        = new PluginManufacturersimportsConfig();
+         $config = new PluginManufacturersimportsConfig();
          $config->getFromDB($p['manufacturers_id']);
          $suppliername  = $config->fields["name"];
-         $supplierclass = "PluginManufacturersimports".$suppliername;
+         $supplierclass = "PluginManufacturersimports" . $suppliername;
          $supplier      = new $supplierclass();
 
          $infocom = new Infocom();
@@ -427,96 +546,43 @@ class PluginManufacturersimportsPreImport extends CommonDBTM {
             $p['start'] = 0;
          }
 
-         $modeltable = getTableForItemType($p['itemtype']."Model");
-         $modelfield = getForeignKeyFieldForTable(getTableForItemType($p['itemtype']."Model"));
-         $item       = new $p['itemtype']();
-         $itemtable  = getTableForItemType($p['itemtype']);
-         
-         $query = "SELECT `".$itemtable."`.`id`,
-                        `".$itemtable."`.`name`, 
-                        `".$itemtable."`.`serial`,
-                        `".$itemtable."`.`entities_id`,
-                         `glpi_plugin_manufacturersimports_logs`.`import_status`,
-                          `glpi_plugin_manufacturersimports_logs`.`items_id`,
-                           `glpi_plugin_manufacturersimports_logs`.`itemtype`, 
-                           `glpi_plugin_manufacturersimports_logs`.`documents_id`,
-                            `glpi_plugin_manufacturersimports_logs`.`date_import`, 
-                            '".$p['itemtype']."' AS type,
-                            `$modeltable`.`name` AS model_name
-                  FROM `".$itemtable."` ";
+         $toview = ["name" => 1];
 
-         //model device left join
-         $query.= "LEFT JOIN `$modeltable` ON (`$modeltable`.`id` = `".$itemtable."`.`".$modelfield."`) ";
-         $query.=" LEFT JOIN `glpi_entities` ON (`glpi_entities`.`id` = `".$itemtable."`.`entities_id`)";
-         $query.=" LEFT JOIN `glpi_plugin_manufacturersimports_configs` 
-         ON (`glpi_plugin_manufacturersimports_configs`.`manufacturers_id` = `".$itemtable."`.`manufacturers_id`)";
-         $query.=" LEFT JOIN `glpi_plugin_manufacturersimports_logs` 
-         ON (`glpi_plugin_manufacturersimports_logs`.`items_id` = `".$itemtable."`.`id` 
-         AND `glpi_plugin_manufacturersimports_logs`.`itemtype` = '".$p['itemtype']."')";
-         $query.=" LEFT JOIN `glpi_plugin_manufacturersimports_models` 
-         ON (`glpi_plugin_manufacturersimports_models`.`items_id` = `".$itemtable."`.`id` 
-         AND `glpi_plugin_manufacturersimports_models`.`itemtype` = '".$p['itemtype']."')";
-         
-         //serial must be not empty
-         $query.= " WHERE `".$itemtable."`.`is_deleted` = '0'
-          AND `".$itemtable."`.`is_template` = '0'
-          AND `glpi_plugin_manufacturersimports_configs`.`id` = '".$p['manufacturers_id']."'
-          AND `".$itemtable."`.`serial` != '' ";
-         //already imported
-         if ($p['imported']==self::IMPORTED) {
-            $query.= " AND `import_status` != ".self::IMPORTED."";
-         //not imported
-         } else if ($p['imported']==self::NOT_IMPORTED) {
-            $query.= " AND (`date_import` IS NULL OR `import_status` = ".self::IMPORTED." ";
-            $query.= ") ";
-         }
-         $entities="";
-         if ($config->isRecursive()) {
-            $entities = getSonsOf('glpi_entities',$config->getEntityID());
-         } else {
-            $entities = $config->getEntityID();
-         }
-         $query.= "".getEntitiesRestrictRequest(" AND",$itemtable,'','',$item->maybeRecursive());
-         
-         //// 4 - ORDER
-         $ORDER=" ORDER BY `entities_id`,`".$itemtable."`.`name` ";
-         
-         $toview=array("name"=>1);
+         $query = self::queryImport($p, $config, $toview);
 
-         foreach($toview as $key => $val) {
-            if ($p['sort']==$val) {
-               $ORDER= self::addOrderBy($p['itemtype'],$p['sort'],$p['order'],$key);
-            }
-         }
-         $query  .= $ORDER;
          $result  = $DB->query($query);
-         $numrows =  $DB->numrows($result);
+         $numrows = $DB->numrows($result);
 
-         if ($p['start']<$numrows) {
+         if ($p['start'] < $numrows) {
 
             // Set display type for export if define
-            $output_type=Search::HTML_OUTPUT;
+            $output_type = Search::HTML_OUTPUT;
             if (isset($_GET["display_type"])) {
                $output_type = $_GET["display_type"];
             }
-            $parameters = "itemtype=".$p['itemtype'].
-                          "&amp;manufacturers_id=".$p['manufacturers_id'].
-                          "&amp;imported=".$p['imported'];
+            $parameters = "itemtype=" . $p['itemtype'] .
+                          "&amp;manufacturers_id=" . $p['manufacturers_id'] .
+                          "&amp;imported=" . $p['imported'];
             $total      = 0;
-            
-            if ($output_type==Search::HTML_OUTPUT) {
-               self::printPager($p['start'], $numrows, 
+
+            if ($output_type == Search::HTML_OUTPUT) {
+               //               if ($suppliername == PluginManufacturersimportsConfig::HP){
+               //                  echo "<div class='center'>";
+               //                  echo "<span class='red'>".__('Warning')." : ".__('It is recommended that you specify the model number for HP imports', 'manufacturersimports') . "</span>";
+               //                  echo "</div>";
+               //               }
+               self::printPager($p['start'], $numrows,
                                 $target, $parameters, $p['itemtype']);
             }
             // Define begin and end var for loop
             // Search case
-            $begin_display=$p['start'];
-            $end_display=$p['start']+$_SESSION["glpilist_limit"];
+            $begin_display = $p['start'];
+            $end_display   = $p['start'] + $_SESSION["glpilist_limit"];
 
             // Export All case
             if (isset($_GET['export_all'])) {
-               $begin_display=0;
-               $end_display=$numrows;
+               $begin_display = 0;
+               $end_display   = $numrows;
             }
 
             if (Session::isMultiEntitiesMode()) {
@@ -528,54 +594,54 @@ class PluginManufacturersimportsPreImport extends CommonDBTM {
             if ($output_type == Search::HTML_OUTPUT) {
                echo "<form method='post' name='massiveaction_form' id='massiveaction_form' action=\"../ajax/massiveaction.php\">";
             }
-      
+
             //echo Search::displaySearchHeader($output_type,0); //table + div
             if ($canedit) {
-               $nbcols = 11+$colsup;
+               $nbcols = 11 + $colsup;
             } else {
-               $nbcols = 10+$colsup;
+               $nbcols = 10 + $colsup;
             }
             $LIST_LIMIT    = $_SESSION['glpilist_limit'];
             $begin_display = $p['start'];
             $end_display   = $p['start'] + $LIST_LIMIT;
-            
+
             foreach ($toview as $key => $val) {
                $linkto = '';
                if (!isset($searchopt["PluginManufacturersimportsPreImport"][$val]['nosort'])
-                     || !$searchopt["PluginManufacturersimportsPreImport"][$val]['nosort']) {
-                  $linkto = "$target?itemtype=".$p['itemtype']."&amp;manufacturers_id=".
-                             $p['manufacturers_id']."&amp;imported=".
-                             $p['imported']."&amp;sort=".
-                             $val."&amp;order=".($p['order']=="ASC"?"DESC":"ASC").
-                             "&amp;start=".$p['start'].$globallinkto;
+                   || !$searchopt["PluginManufacturersimportsPreImport"][$val]['nosort']) {
+                  $linkto = "$target?itemtype=" . $p['itemtype'] . "&amp;manufacturers_id=" .
+                            $p['manufacturers_id'] . "&amp;imported=" .
+                            $p['imported'] . "&amp;sort=" .
+                            $val . "&amp;order=" . ($p['order'] == "ASC" ? "DESC" : "ASC") .
+                            "&amp;start=" . $p['start'] . $globallinkto;
                }
             }
-            echo Search::showHeader($output_type,$end_display-$begin_display+1,$nbcols);
+            echo Search::showHeader($output_type, $end_display - $begin_display + 1, $nbcols);
             echo Search::showNewLine($output_type);
             $header_num = 1;
 
             echo Search::showHeaderItem($output_type, "", $header_num);
             echo Search::showHeaderItem($output_type, __('Name'),
-                                        $header_num, $linkto, $p['sort']==$val, $p['order']);
+                                        $header_num, $linkto, $p['sort'] == $val, $p['order']);
             if (Session::isMultiEntitiesMode()) {
                echo Search::showHeaderItem($output_type, __('Entity'), $header_num);
             }
             echo Search::showHeaderItem($output_type, __('Serial number'), $header_num);
-            echo $supplier->showItemTitle($output_type,$header_num);
-            echo Search::showHeaderItem($output_type, 
+            echo Search::showHeaderItem($output_type, __('Model Number', 'manufacturersimports'), $header_num);
+            echo Search::showHeaderItem($output_type,
                                         __('Financial and administrative information'),
                                         $header_num);
-            echo Search::showHeaderItem($output_type, 
+            echo Search::showHeaderItem($output_type,
                                         __('Supplier attached', 'manufacturersimports'),
                                         $header_num);
-            echo Search::showHeaderItem($output_type, 
+            echo Search::showHeaderItem($output_type,
                                         __('New warranty attached', 'manufacturersimports'),
                                         $header_num);
-            echo Search::showHeaderItem($output_type, 
-                                        _n('Link' , 'Links' , 1),
+            echo Search::showHeaderItem($output_type,
+                                        _n('Link', 'Links', 1),
                                         $header_num);
-            echo Search::showHeaderItem($output_type, 
-                                        _n('Status' , 'Statuses' , 1),
+            echo Search::showHeaderItem($output_type,
+                                        _n('Status', 'Statuses', 1),
                                         $header_num);
             echo $supplier->showDocTitle($output_type, $header_num);
 
@@ -587,7 +653,7 @@ class PluginManufacturersimportsPreImport extends CommonDBTM {
                $i = 0;
             }
             if ($i > 0) {
-               $DB->data_seek($result,$i);
+               $DB->dataSeek($result, $i);
             }
 
             $row_num = 1;
@@ -596,55 +662,56 @@ class PluginManufacturersimportsPreImport extends CommonDBTM {
                $i++;
 
                $item_num   = 1;
-               $line       = $DB->fetch_array($result);
+               $line       = $DB->fetchArray($result);
                $compSerial = $line['serial'];
                $compId     = $line['id'];
                $model      = $line["model_name"];
-               if (!$line["itemtype"])
+               if (!$line["itemtype"]) {
                   $line["itemtype"] = $p['itemtype'];
-               
-               self::showImport($row_num,$item_num,$line,$output_type,
+               }
+
+               self::showImport($row_num, $item_num, $line, $output_type,
                                 $p['manufacturers_id'],
                                 $line["import_status"],
                                 $p['imported']);
                //1.show already imported items && import_status not failed
                if ($p['imported'] == 1) {
-                  $total+= 1;
+                  $total += 1;
                }
 
             }
-            echo "<tr class='tab_bg_1'><td colspan='".
-               ($canedit?(11+$colsup):(10+$colsup))."'>";
-            echo sprintf(__('Total number of devices to import %s', 
+            echo "<tr class='tab_bg_1'><td colspan='" .
+                 ($canedit ? (11 + $colsup) : (10 + $colsup)) . "'>";
+            echo sprintf(__('Total number of devices to import %s',
                             'manufacturersimports'), $total);
             echo "</td></tr>";
 
             // Close Table
-            $title="";
+            $title = "";
             // Create title
             if ($output_type == Search::PDF_OUTPUT_PORTRAIT
-               || $output_type == Search::PDF_OUTPUT_LANDSCAPE) {
-               $title.= 
+                || $output_type == Search::PDF_OUTPUT_LANDSCAPE) {
+               $title .=
                   PluginManufacturersimportsPreImport::getTypeName(2)
-                  ." ".$suppliername;
+                  . " " . $suppliername;
             }
 
-            echo Search::showFooter($output_type,$title);
+            echo Search::showFooter($output_type, $title);
 
             //massive action
             if ($canedit && $output_type == Search::HTML_OUTPUT) {
                if ($_SESSION['glpilist_limit'] < Toolbox::get_max_input_vars()) {
-                  Html::openArrowMassives("massiveaction_form", false);
+                  self::openArrowMassives("massiveaction_form", false);
                   self::dropdownMassiveAction($compId, $p['itemtype'],
                                               $p['manufacturers_id'],
                                               $p['start'], $p['imported']);
-                  Html::closeArrowMassives(array());
+                  self::closeArrowMassives([]);
                } else {
-                  echo "<table class='tab_cadre' width='80%'><tr class='tab_bg_1'>".
-                        "<td><span class='b'>";
-                  echo __('Selection too large, massive action disabled.')."</span>";
+                  echo "<table class='tab_cadre' width='80%'><tr class='tab_bg_1'>" .
+                       "<td><span class='b'>";
+                  echo __('Selection too large, massive action disabled.') . "</span>";
                   if ($_SESSION['glpi_use_mode'] == Session::DEBUG_MODE) {
-                     echo "<br>".__('To increase the limit: change max_input_vars or suhosin.post.max_vars in php configuration.');
+                     echo "<br>" . __('To increase the limit: change max_input_vars or suhosin.post.max_vars in php configuration.');
                   }
                   echo "</td></tr></table>";
                }
@@ -655,57 +722,202 @@ class PluginManufacturersimportsPreImport extends CommonDBTM {
             }
 
             echo "<br>";
-            if ($output_type==Search::HTML_OUTPUT) {
-               self::printPager($p['start'], $numrows, 
+            if ($output_type == Search::HTML_OUTPUT) {
+               self::printPager($p['start'], $numrows,
                                 $target, $parameters, $p['itemtype']);
             }
 
          } else {
-            echo "<div align='center'><b>".
-               __('No device finded', 'manufacturersimports')."</b></div>";
+            echo "<div align='center'><b>" .
+                 __('No device finded', 'manufacturersimports') . "</b></div>";
          }
       }
    }
-   
+
    /**
-   * Generic Function to add ORDER BY to a request
-   *
-   *@param $itemtype ID of the device type
-   *@param $ID field to add
-   *@param $order order define
-   *@param $key item number
-   *
-   *@return select string
-   *
-   **/
-   static function addOrderBy($itemtype, $ID, $order, $key=0) {
+    * show arrow for massives actions : opening
+    *
+    * @param $formname  string
+    * @param $fixed     boolean  used tab_cadre_fixe in both tables (false by default)
+    * @param $ontop              display on top of the list (false by default)
+    * @param $onright            display on right of the list (false by default)
+    *
+    **/
+   static function openArrowMassives($formname, $fixed = false, $ontop = false, $onright = false) {
+      global $CFG_GLPI;
+
+      if ($fixed) {
+         echo "<table class='tab_glpi' width='950px'>";
+      } else {
+         echo "<table class='tab_glpi' width='80%'>";
+      }
+
+      echo "<tr>";
+      if (!$onright) {
+         echo "<td><img src='".$CFG_GLPI["root_doc"]."/pics/arrow-left".($ontop?'-top':'').".png'
+                    alt=''></td>";
+      } else {
+         echo "<td class='left' width='80%'></td>";
+      }
+      echo "<td class='center' style='white-space:nowrap;'>";
+      echo "<a onclick= \"if ( markCheckboxes('$formname') ) return false;\"
+             href='#'>".__('Check all')."</a></td>";
+      echo "<td>/</td>";
+      echo "<td class='center' style='white-space:nowrap;'>";
+      echo "<a onclick= \"if ( unMarkCheckboxes('$formname') ) return false;\"
+             href='#'>".__('Uncheck all')."</a></td>";
+
+      if ($onright) {
+         echo "<td><img src='".$CFG_GLPI["root_doc"]."/pics/arrow-right".($ontop?'-top':'').".png'
+                    alt=''>";
+      } else {
+         echo "<td class='left' width='80%'>";
+      }
+
+   }
+
+
+   /**
+    * show arrow for massives actions : closing
+    *
+    * @param $actions array of action : $name -> $label
+    * @param $confirm array of confirmation string (optional)
+    *
+    **/
+   static function closeArrowMassives($actions, $confirm = []) {
+
+      if (count($actions)) {
+         foreach ($actions as $name => $label) {
+            if (!empty($name)) {
+
+               echo "<input type='submit' name='$name' ";
+               if (is_array($confirm) && isset($confirm[$name])) {
+                  echo self::addConfirmationOnAction($confirm[$name]);
+               }
+               echo "value=\"".addslashes($label)."\" class='submit'>&nbsp;";
+            }
+         }
+      }
+      echo "</td></tr>";
+      echo "</table>";
+   }
+   /**
+    * Request
+    *
+    * @param $p
+    * @param $config
+    * @param $toview
+    *
+    * @return string
+    */
+   static function queryImport($p, $config, $toview) {
+
+      $dbu = new DbUtils();
+
+      $modeltable = $dbu->getTableForItemType($p['itemtype'] . "Model");
+      $modelfield = $dbu->getForeignKeyFieldForTable($dbu->getTableForItemType($p['itemtype'] . "Model"));
+      $item       = new $p['itemtype']();
+      $itemtable  = $dbu->getTableForItemType($p['itemtype']);
+
+      $query = "SELECT `" . $itemtable . "`.`id`,
+                        `" . $itemtable . "`.`name`, 
+                        `" . $itemtable . "`.`serial`,
+                        `" . $itemtable . "`.`entities_id`,
+                        `glpi_plugin_manufacturersimports_logs`.`import_status`,
+                        `glpi_plugin_manufacturersimports_logs`.`items_id`,
+                        `glpi_plugin_manufacturersimports_logs`.`itemtype`, 
+                        `glpi_plugin_manufacturersimports_logs`.`documents_id`,
+                        `glpi_plugin_manufacturersimports_logs`.`date_import`,
+                        `glpi_plugin_manufacturersimports_models`.`model_name` AS product_number,
+                        '" . $p['itemtype'] . "' AS type,
+                        `$modeltable`.`name` AS model_name
+                  FROM `" . $itemtable . "` ";
+
+      //model device left join
+      $query .= "LEFT JOIN `$modeltable` ON (`$modeltable`.`id` = `" . $itemtable . "`.`" . $modelfield . "`) ";
+      $query .= " LEFT JOIN `glpi_entities` ON (`glpi_entities`.`id` = `" . $itemtable . "`.`entities_id`)";
+      $query .= " LEFT JOIN `glpi_plugin_manufacturersimports_configs` 
+         ON (`glpi_plugin_manufacturersimports_configs`.`manufacturers_id` = `" . $itemtable . "`.`manufacturers_id`)";
+      $query .= " LEFT JOIN `glpi_plugin_manufacturersimports_logs` 
+         ON (`glpi_plugin_manufacturersimports_logs`.`items_id` = `" . $itemtable . "`.`id` 
+         AND `glpi_plugin_manufacturersimports_logs`.`itemtype` = '" . $p['itemtype'] . "')";
+      $query .= " LEFT JOIN `glpi_plugin_manufacturersimports_models` 
+         ON (`glpi_plugin_manufacturersimports_models`.`items_id` = `" . $itemtable . "`.`id` 
+         AND `glpi_plugin_manufacturersimports_models`.`itemtype` = '" . $p['itemtype'] . "')";
+
+      //serial must be not empty
+      $query .= " WHERE `" . $itemtable . "`.`is_deleted` = '0'
+          AND `" . $itemtable . "`.`is_template` = '0'
+          AND `glpi_plugin_manufacturersimports_configs`.`id` = '" . $p['manufacturers_id'] . "'
+          AND `" . $itemtable . "`.`serial` != '' ";
+      //already imported
+      if ($p['imported'] == self::IMPORTED) {
+         $query .= " AND `import_status` != " . self::IMPORTED . "";
+         //not imported
+      } else if ($p['imported'] == self::NOT_IMPORTED) {
+         $query .= " AND (`date_import` IS NULL OR `import_status` = " . self::IMPORTED . " ";
+         $query .= ") ";
+      }
+      $entities = "";
+      if ($config->isRecursive()) {
+         $entities = $dbu->getSonsOf('glpi_entities', $config->getEntityID());
+      } else {
+         $entities = $config->getEntityID();
+      }
+      $query .= "" . $dbu->getEntitiesRestrictRequest(" AND", $itemtable, '', '', $item->maybeRecursive());
+
+      //// 4 - ORDER
+      $ORDER = " ORDER BY `entities_id`,`" . $itemtable . "`.`name` ";
+
+      foreach ($toview as $key => $val) {
+         if ($p['sort'] == $val) {
+            $ORDER = self::addOrderBy($p['itemtype'], $p['sort'], $p['order'], $key);
+         }
+      }
+      $query .= $ORDER;
+
+      return $query;
+
+   }
+
+   /**
+    * Generic Function to add ORDER BY to a request
+    *
+    * @param $itemtype ID of the device type
+    * @param $ID field to add
+    * @param $order order define
+    * @param $key item number
+    *
+    * @return select string
+    *
+    **/
+   static function addOrderBy($itemtype, $ID, $order, $key = 0) {
       global $CFG_GLPI;
 
       // Security test for order
-      if ($order!="ASC") {
+      if ($order != "ASC") {
          $order = "DESC";
       }
       $searchopt = &Search::getOptions($itemtype);
 
-      $table     = $searchopt[$ID]["table"];
-      $field     = $searchopt[$ID]["field"];
-
+      $table = $searchopt[$ID]["table"];
+      $field = $searchopt[$ID]["field"];
 
       $addtable = '';
+      $dbu      = new DbUtils();
 
-      if ($table != getTableForItemType($itemtype)
-          && $searchopt[$ID]["linkfield"] != getForeignKeyFieldForTable($table)) {
-         $addtable .= "_".$searchopt[$ID]["linkfield"];
+      if ($table != $dbu->getTableForItemType($itemtype)
+          && $searchopt[$ID]["linkfield"] != $dbu->getForeignKeyFieldForTable($table)) {
+         $addtable .= "_" . $searchopt[$ID]["linkfield"];
       }
 
       if (isset($searchopt[$ID]['joinparams'])) {
          $complexjoin = Search::computeComplexJoinID($searchopt[$ID]['joinparams']);
 
          if (!empty($complexjoin)) {
-            $addtable .= "_".$complexjoin;
+            $addtable .= "_" . $complexjoin;
          }
       }
-
 
       if (isset($CFG_GLPI["union_search_type"][$itemtype])) {
          return " ORDER BY ITEM_$key $order ";
@@ -715,30 +927,38 @@ class PluginManufacturersimportsPreImport extends CommonDBTM {
 
    }
 
-   static function printPager($start,$numrows,$target,$parameters,$item_type_output=0,$item_type_output_param=0) {
+   /**
+    * @param     $start
+    * @param     $numrows
+    * @param     $target
+    * @param     $parameters
+    * @param int $item_type_output
+    * @param int $item_type_output_param
+    */
+   static function printPager($start, $numrows, $target, $parameters, $item_type_output = 0, $item_type_output_param = 0) {
       global $CFG_GLPI;
 
-      $list_limit=$_SESSION['glpilist_limit'];
+      $list_limit = $_SESSION['glpilist_limit'];
       // Forward is the next step forward
-      $forward = $start+$list_limit;
+      $forward = $start + $list_limit;
 
       // This is the end, my friend
-      $end = $numrows-$list_limit;
+      $end = $numrows - $list_limit;
 
       // Human readable count starts here
-      $current_start=$start+1;
+      $current_start = $start + 1;
 
       // And the human is viewing from start to end
-      $current_end = $current_start+$list_limit-1;
-      if ($current_end>$numrows) {
+      $current_end = $current_start + $list_limit - 1;
+      if ($current_end > $numrows) {
          $current_end = $numrows;
       }
 
       // Backward browsing
-      if ($current_start-$list_limit<=0) {
-         $back=0;
+      if ($current_start - $list_limit <= 0) {
+         $back = 0;
       } else {
-         $back=$start-$list_limit;
+         $back = $start - $list_limit;
       }
 
       // Print it
@@ -747,16 +967,16 @@ class PluginManufacturersimportsPreImport extends CommonDBTM {
       echo "<tr>\n";
 
       // Back and fast backward button
-      if (!$start==0) {
+      if (!$start == 0) {
          echo "<th class='left'>";
          echo "<a href='$target?$parameters&amp;start=0'>";
-         echo "<img src='".$CFG_GLPI["root_doc"]."/pics/first.png' alt=\"".__s('Start').
-               "\" title=\"".__s('Start')."\">";
+         echo "<img src='" . $CFG_GLPI["root_doc"] . "/pics/first.png' alt=\"" . __s('Start') .
+              "\" title=\"" . __s('Start') . "\">";
          echo "</a></th>";
          echo "<th class='left'>";
          echo "<a href='$target?$parameters&amp;start=$back'>";
-         echo "<img src='".$CFG_GLPI["root_doc"]."/pics/left.png' alt=\"".__s('Previous').
-               "\" title=\"".__s('Previous')."\">";
+         echo "<img src='" . $CFG_GLPI["root_doc"] . "/pics/left.png' alt=\"" . __s('Previous') .
+              "\" title=\"" . __s('Previous') . "\">";
          echo "</a></th>";
       }
 
@@ -771,17 +991,17 @@ class PluginManufacturersimportsPreImport extends CommonDBTM {
       echo "</td>\n";
 
       // Forward and fast forward button
-      if ($forward<$numrows) {
+      if ($forward < $numrows) {
          echo "<th class='right'>";
          echo "<a href='$target?$parameters&amp;start=$forward'>";
-         echo "<img src='".$CFG_GLPI["root_doc"]."/pics/right.png' alt=\"".__s('Next').
-               "\" title=\"".__s('Next')."\">";
+         echo "<img src='" . $CFG_GLPI["root_doc"] . "/pics/right.png' alt=\"" . __s('Next') .
+              "\" title=\"" . __s('Next') . "\">";
          echo "</a></th>\n";
 
          echo "<th class='right'>";
          echo "<a href='$target?$parameters&amp;start=$end'>";
-         echo "<img src='".$CFG_GLPI["root_doc"]."/pics/last.png' alt=\"".__s('End').
-                "\" title=\"".__s('End')."\">";
+         echo "<img src='" . $CFG_GLPI["root_doc"] . "/pics/last.png' alt=\"" . __s('End') .
+              "\" title=\"" . __s('End') . "\">";
          echo "</a></th>\n";
       }
 
@@ -791,44 +1011,55 @@ class PluginManufacturersimportsPreImport extends CommonDBTM {
 
    }
 
-   static function dropdownMassiveAction($ID,$type,$manufacturer,$start,$imported) {
+   /**
+    * @param $ID
+    * @param $type
+    * @param $manufacturer
+    * @param $start
+    * @param $imported
+    */
+   static function dropdownMassiveAction($ID, $type, $manufacturer, $start, $imported) {
       global $CFG_GLPI;
 
       echo "<select name=\"massiveaction\" id='massiveaction'>";
-      echo "<option value=\"-1\" selected>".Dropdown::EMPTY_VALUE."</option>";
+      echo "<option value=\"-1\" selected>" . Dropdown::EMPTY_VALUE . "</option>";
       //not imported
-      if ($imported==self::NOT_IMPORTED) {
-         echo "<option value=\"import\">".__('Import')."</option>";
+      if ($imported == self::NOT_IMPORTED) {
+         echo "<option value=\"import\">" . __('Import') . "</option>";
       }
-      echo "<option value=\"reinit_once\">".__('Reset the import', 'manufacturersimports')."</option>";
+      echo "<option value=\"reinit_once\">" . __('Reset the import', 'manufacturersimports') . "</option>";
 
       echo "</select>";
 
-      $params=array('action'=>'__VALUE__',
-        'manufacturers_id'=>$manufacturer,
-        'itemtype'=>$type,
-        'start'=>$start,
-        'imported'=>$imported,
-        'id'=>$ID,
-        );
+      $params = ['action'           => '__VALUE__',
+                      'manufacturers_id' => $manufacturer,
+                      'itemtype'         => $type,
+                      'start'            => $start,
+                      'imported'         => $imported,
+                      'id'               => $ID,
+      ];
 
-      Ajax::updateItemOnSelectEvent("massiveaction","show_massiveaction",
-      $CFG_GLPI["root_doc"]."/plugins/manufacturersimports/ajax/dropdownMassiveAction.php",$params);
+      Ajax::updateItemOnSelectEvent("massiveaction", "show_massiveaction",
+                                    $CFG_GLPI["root_doc"] . "/plugins/manufacturersimports/ajax/dropdownMassiveAction.php", $params);
 
       echo "<span id='show_massiveaction'>&nbsp;</span>\n";
 
    }
-   
+
+   /**
+    * @param $name
+    * @param $array
+    *
+    * @return string
+    */
    static function getArrayUrlLink($name, $array) {
       $out = "";
-      if (is_array($array) && count($array)>0) {
+      if (is_array($array) && count($array) > 0) {
          foreach ($array as $key => $val) {
-            $out .= "&amp;".$name."[$key]=".urlencode(stripslashes($val));
+            $out .= "&amp;" . $name . "[$key]=" . urlencode(stripslashes($val));
          }
       }
       return $out;
    }
 
 }
-
-?>

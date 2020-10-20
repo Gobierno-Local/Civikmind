@@ -8,12 +8,12 @@ class PluginFieldsContainer extends \FieldsDbTestCase {
       $this->string(\PluginFieldsContainer::getTypeName())->isIdenticalTo('Block');
    }
 
-   public function testGetSearchOptions() {
+   public function testRawSearchOptions() {
       $container = new \PluginFieldsContainer();
       $this
          ->given($this->newTestedInstance)
          ->then
-            ->array($this->testedInstance->getSearchOptions())
+            ->array($this->testedInstance->rawSearchOptions())
                ->hasSize(8);
    }
 
@@ -30,7 +30,7 @@ class PluginFieldsContainer extends \FieldsDbTestCase {
       $newid = $container->add($data);
       $this->integer($newid)->isGreaterThan(0);
 
-      $this->boolean(class_exists('PluginFieldsComputercontainerlabel1'))->isTrue();
+      $this->boolean(class_exists('PluginFieldsComputercontainerlabelOne'))->isTrue();
    }
 
    public function testGetTypes() {

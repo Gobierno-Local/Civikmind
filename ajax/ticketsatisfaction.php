@@ -2,7 +2,7 @@
 /**
  * ---------------------------------------------------------------------
  * GLPI - Gestionnaire Libre de Parc Informatique
- * Copyright (C) 2015-2017 Teclib' and contributors.
+ * Copyright (C) 2015-2020 Teclib' and contributors.
  *
  * http://glpi-project.org
  *
@@ -30,10 +30,6 @@
  * ---------------------------------------------------------------------
  */
 
-/** @file
-* @brief
-*/
-
 // Direct access to file
 if (strpos($_SERVER['PHP_SELF'], "ticketsatisfaction.php")) {
    $AJAX_INCLUDE = 1;
@@ -46,13 +42,11 @@ $entity = new Entity();
 
 if (isset($_POST['inquest_config']) && isset($_POST['entities_id'])) {
    if ($entity->getFromDB($_POST['entities_id'])) {
-      $inquest_config    = $entity->getfield('inquest_config');
       $inquest_delay     = $entity->getfield('inquest_delay');
       $inquest_rate      = $entity->getfield('inquest_rate');
       $inquest_duration  = $entity->getfield('inquest_duration');
       $max_closedate     = $entity->getfield('max_closedate');
    } else {
-      $inquest_config    = $_POST['inquest_config'];
       $inquest_delay     = -1;
       $inquest_rate      = -1;
       $inquest_duration  = -1;

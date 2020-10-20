@@ -5,11 +5,11 @@
  Manufacturersimports plugin for GLPI
  Copyright (C) 2003-2016 by the Manufacturersimports Development Team.
 
- https://github.com/InfotelGLPI
+ https://github.com/InfotelGLPI/manufacturersimports
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of Manufacturersimports.
 
  Manufacturersimports is free software; you can redistribute it and/or modify
@@ -31,16 +31,31 @@ if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
 }
 
+/**
+ * Class PluginManufacturersimportsModel
+ */
 class PluginManufacturersimportsModel extends CommonDBTM {
 
    static $rightname = "plugin_manufacturersimports";
 
+   /**
+    * Return the localized name of the current Type
+    * Should be overloaded in each new class
+    *
+    * @return string
+    **/
    static function getTypeName($nb = 0) {
-      return _n('Suppliers import', 'Suppliers imports', 
+      return _n('Suppliers import', 'Suppliers imports',
                 $nb, 'manufacturersimports');
    }
-   
 
+
+   /**
+    * @param $items_id
+    * @param $itemtype
+    *
+    * @return bool
+    */
    function getFromDBbyDevice($items_id, $itemtype) {
       global $DB;
 
@@ -51,7 +66,7 @@ class PluginManufacturersimportsModel extends CommonDBTM {
          if ($DB->numrows($result) != 1) {
             return false;
          }
-         $this->fields = $DB->fetch_assoc($result);
+         $this->fields = $DB->fetchAssoc($result);
          if (is_array($this->fields) && count($this->fields)) {
             return true;
          } else {
@@ -61,6 +76,12 @@ class PluginManufacturersimportsModel extends CommonDBTM {
       return false;
    }
 
+   /**
+    * @param $itemtype
+    * @param $items_id
+    *
+    * @return bool
+    */
    function checkIfModelNeeds($itemtype, $items_id) {
       if ($this->getFromDBbyDevice($items_id, $itemtype)) {
          return $this->fields["model_name"];
@@ -69,11 +90,16 @@ class PluginManufacturersimportsModel extends CommonDBTM {
       }
    }
 
-  function addModel($values) {
+   /**
+    * @param $values
+    *
+    * @return bool
+    */
+   function addModel($values) {
       $tmp['model_name'] = $values['model_name'];
       $tmp['itemtype']   = $values['itemtype'];
       $tmp['items_id']   = $values['items_id'];
-      if ($this->getFromDBbyDevice($values['items_id'], 
+      if ($this->getFromDBbyDevice($values['items_id'],
                                    $values['itemtype'])) {
          $tmp['id'] = $this->getID();
          $this->update($tmp);
@@ -91,9 +117,9 @@ class PluginManufacturersimportsModel extends CommonDBTM {
    * @return nothing (print out a table)
    *
    */
-   static function showForm($itemtype,$items_id) {
-      global $DB,$CFG_GLPI;
-      
+   static function showForm($itemtype, $items_id) {
+      global $DB;
+
       $canedit = Session::haveRight(static::$rightname, UPDATE);
 
       $query = "SELECT *
@@ -112,7 +138,7 @@ class PluginManufacturersimportsModel extends CommonDBTM {
       echo "</tr>";
 
       if ($number == 1) {
-         while($line = $DB->fetch_array($result)) {
+         while ($line = $DB->fetchArray($result)) {
             $ID = $line["id"];
             echo "<tr class='tab_bg_1'>";
             echo "<td class='left'>";
@@ -121,8 +147,8 @@ class PluginManufacturersimportsModel extends CommonDBTM {
             if ($canedit) {
                echo "<td class='center' class='tab_bg_2'>";
                Html::showSimpleForm($config_url, 'delete_model',
-                                    _x('button','Delete permanently'),
-                                    array('id' => $ID));
+                                    _x('button', 'Delete permanently'),
+                                    ['id' => $ID]);
                echo "</td>";
             } else {
                echo "<td>";
@@ -135,22 +161,31 @@ class PluginManufacturersimportsModel extends CommonDBTM {
          echo "<tr class='tab_bg_1'>";
          echo "<td colspan='2'>";
          echo "<input type='text' name='model_name' size='30'>";
-         echo Html::hidden('items_id', array('value' => $items_id));
-         echo Html::hidden('itemtype', array('value' => $itemtype));
-         echo Html::submit(_sx('button','Save'), array('name' => 'update_model'));
+         echo Html::hidden('items_id', ['value' => $items_id]);
+         echo Html::hidden('itemtype', ['value' => $itemtype]);
+         echo Html::submit(_sx('button', 'Save'), ['name' => 'update_model']);
          echo "</td></tr>";
       }
 
       echo "</table></div>";
       Html::closeForm();
    }
-   
+
+   /**
+    * Class-specific method used to show the fields to specify the massive action
+    *
+    * @since version 0.85
+    *
+    * @param $ma the current massive action object
+    *
+    * @return false if parameters displayed ?
+    **/
    static function showMassiveActionsSubForm(MassiveAction $ma) {
 
       switch ($ma->getAction()) {
          case "add_model" :
             echo "<input type=\"text\" name=\"model_name\">&nbsp;";
-            echo Html::submit(_sx('button', 'Post'), array('name' => 'massiveaction'));
+            echo Html::submit(_sx('button', 'Post'), ['name' => 'massiveaction']);
             return true;
             break;
       }
@@ -166,14 +201,14 @@ class PluginManufacturersimportsModel extends CommonDBTM {
                                                        array $ids) {
 
       switch ($ma->getAction()) {
-          case "add_model":
+         case "add_model":
             $model=new PluginManufacturersimportsModel();
             $input = $ma->getInput();
             foreach ($ma->items as $itemtype => $myitem) {
                foreach ($myitem as $key => $value) {
-                  $input = array('model_name' => $ma->POST['model_name'],
+                  $input = ['model_name' => $ma->POST['model_name'],
                                  'items_id'   => $key,
-                                 'itemtype'   => $itemtype);
+                                 'itemtype'   => $itemtype];
                   if ($model->addModel($input)) {
                      $ma->itemDone($item->getType(), $key, MassiveAction::ACTION_OK);
                   } else {
@@ -185,5 +220,3 @@ class PluginManufacturersimportsModel extends CommonDBTM {
       }
    }
 }
-
-?>

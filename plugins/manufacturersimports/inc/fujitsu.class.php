@@ -5,11 +5,11 @@
  Manufacturersimports plugin for GLPI
  Copyright (C) 2003-2016 by the Manufacturersimports Development Team.
 
- https://github.com/InfotelGLPI
+ https://github.com/InfotelGLPI/manufacturersimports
  -------------------------------------------------------------------------
 
  LICENSE
-      
+
  This file is part of Manufacturersimports.
 
  Manufacturersimports is free software; you can redistribute it and/or modify
@@ -31,70 +31,86 @@ if (!defined('GLPI_ROOT')) {
    die("Sorry. You can't access directly to this file");
 }
 
+/**
+ * Class PluginManufacturersimportsFujitsu
+ */
 class PluginManufacturersimportsFujitsu extends PluginManufacturersimportsManufacturer {
 
+   /**
+    * @see PluginManufacturersimportsManufacturer::showDocTitle()
+    */
    function showDocTitle($output_type, $header_num) {
       return Search::showHeaderItem($output_type, __('File'), $header_num);
-   }
-
-   function showWarrantyItem($ID, $supplierWarranty) {
-      echo "<td>";
-      Dropdown::showInteger("to_warranty_duration".
-                                  $ID, $supplierWarranty, 
-                                  0, 120, 1, array(-1 => __('Lifelong')));
-      echo "</td>";
    }
 
    function getSearchField() {
       return "Service Start Date";
    }
 
-   function getSupplierInfo($compSerial=null,$otherSerial=null) {
+   /**
+    * @see PluginManufacturersimportsManufacturer::getSupplierInfo()
+    */
+   function getSupplierInfo($compSerial = null, $otherSerial = null, $key = null, $apisecret = null,
+                            $supplierUrl = null) {
       $info["name"]         = PluginManufacturersimportsConfig::FUJITSU;
-      $info["supplier_url"] = "http://sali.uk.ts.fujitsu.com/ServiceEntitlement/service.asp?command=search&";
-      $info["url"]          = $info["supplier_url"]."snr=".$compSerial;
+      $info["supplier_url"] = "http://support.ts.fujitsu.com/Warranty/WarrantyStatus.asp?lng=com&IDNR=";
+      $info["url"]          = $supplierUrl.$compSerial."&Version=3.51";
+
       return $info;
    }
-   
+
+   /**
+    * @see PluginManufacturersimportsManufacturer::getBuyDate()
+    */
    function getBuyDate($contents) {
-      //TODO : translate variables in english
-      $maDate = substr($contents,60,10);
-      $maDate = trim($maDate);
-      $maDate = str_replace('/','-',$maDate);
 
-      $maDate = PluginManufacturersimportsPostImport::checkDate($maDate, true);
+      $matchesarray = [];
+      preg_match_all("/(\d{2}\/\d{2}\/\d{4})/", $contents, $matchesarray);
 
-      if ($maDate != "0000-00-00") {
-         list($jour, $mois, $annee) = explode('-', $maDate);
-         $maDate = date("Y-m-d", mktime(0, 0, 0, $mois, $jour, $annee));
+      $datetimestamp = date('U');
+      $myDate = $matchesarray[0][0];
+
+      $myDate = trim($myDate);
+      $myDate = str_replace('/', '-', $myDate);
+
+      $myDate = PluginManufacturersimportsPostImport::checkDate($myDate, true);
+
+      if ($myDate != "0000-00-00") {
+         list($day, $month, $year) = explode('-', $myDate);
+         $myDate = date("Y-m-d", mktime(0, 0, 0, $month, $day, $year));
       }
-      return $maDate;
+      return $myDate;
+   }
+
+   /**
+    * @see PluginManufacturersimportsManufacturer::getStartDate()
+    */
+   function getStartDate($contents) {
+
+      return self::getBuyDate($contents);
    }
 
 
-   
+   /**
+    * @see PluginManufacturersimportsManufacturer::getExpirationDate()
+    */
    function getExpirationDate($contents) {
-      //TODO : translate variables in english
-      //$field_fin = "year On-Site Service";
-      preg_match('#>([0-9]+) year[s]?#', $contents, $matches);
 
-      if (isset($matches[1])) {
-         $duree = $matches[1];
-      } else {
-         return '';
+      $matchesarray = [];
+      preg_match_all("/(\d{2}\/\d{2}\/\d{4})/", $contents, $matchesarray);
+
+      $datetimestamp = date('U');
+      $myDate = $matchesarray[0][1];
+
+      $myDate = trim($myDate);
+      $myDate = str_replace('/', '-', $myDate);
+
+      $myDate = PluginManufacturersimportsPostImport::checkDate($myDate, true);
+
+      if ($myDate != "0000-00-00") {
+         list($day, $month, $year) = explode('-', $myDate);
+         $myDate = date("Y-m-d", mktime(0, 0, 0, $month, $day, $year));
       }
-
-      preg_match('#>([0-9]{2})/([0-9]{2})/([0-9]{4})#', $contents, $matches);
-
-      if (count($matches) == 4) {
-         list($date, $jour, $mois, $annee) = $matches; 
-      } else {
-         return '';
-      }
-
-      $maDateFin = ($annee+$duree)."-".$mois."-".$jour;
-      return $maDateFin;
+      return $myDate;
    }
 }
-
-?>
